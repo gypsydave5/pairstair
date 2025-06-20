@@ -14,6 +14,18 @@ PairStair is a CLI tool for visualizing and optimizing software developer pairin
 
 You need Go installed (version 1.18+ recommended).
 
+### Homebrew
+
+You can install PairStair using Homebrew with:
+
+```
+brew install gypsydave5/pairstair/pairstair
+```
+
+### Go install
+
+Alternatively, you can install with Go:
+
 ```sh
 go install github.com/gypsydave5/pairstair@latest
 ```
