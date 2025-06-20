@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"sort"
+	"math"
 )
 
 type Recommendation struct {
@@ -45,8 +45,8 @@ func PrintPairMatrix(matrix map[Pair]int, devs []string, shortLabels map[string]
 
 func PrintPairRecommendations(matrix map[Pair]int, devs []string, shortLabels map[string]string) {
 	fmt.Println()
-	fmt.Println("Pairing Recommendations (least-paired first):")
-	recommendations := recommendPairsUnique(devs, matrix)
+	fmt.Println("Pairing Recommendations (least-paired overall, optimal matching):")
+	recommendations := recommendPairsOptimal(devs, matrix)
 	for _, rec := range recommendations {
 		labelA := shortLabels[rec.A]
 		labelB := shortLabels[rec.B]
@@ -54,35 +54,85 @@ func PrintPairRecommendations(matrix map[Pair]int, devs []string, shortLabels ma
 	}
 }
 
-// recommendPairsUnique returns a list of pairs such that each developer appears only once,
-// optimizing for least-paired pairs (greedy matching).
-func recommendPairsUnique(devs []string, matrix map[Pair]int) []Recommendation {
-	type pairKey struct{ A, B string }
-	pairCounts := make([]Recommendation, 0)
-	used := make(map[string]bool)
-	for i := 0; i < len(devs); i++ {
-		for j := i + 1; j < len(devs); j++ {
-			a, b := devs[i], devs[j]
-			count := matrix[Pair{A: a, B: b}]
-			pairCounts = append(pairCounts, Recommendation{A: a, B: b, Count: count})
+// Optimal pairing using brute-force for small N (minimize total pair count, each dev appears once)
+func recommendPairsOptimal(devs []string, matrix map[Pair]int) []Recommendation {
+	n := len(devs)
+	if n < 2 {
+		return nil
+	}
+	// Only even number of devs supported for perfect matching
+	// If odd, leave one out (not paired)
+	limit := n
+	if n%2 != 0 {
+		limit = n - 1
+	}
+	best := make([]Recommendation, 0)
+	minSum := math.MaxInt
+	perm := make([]string, n)
+	copy(perm, devs)
+	pairs := make([]Recommendation, 0, limit/2)
+	used := make([]bool, n)
+
+	var search func(pos int)
+	search = func(pos int) {
+		if pos == limit {
+			// Evaluate this pairing
+			pairs = pairs[:0]
+			for i := 0; i < limit; i += 2 {
+				a, b := perm[i], perm[i+1]
+				pa, pb := a, b
+				if pa > pb {
+					pa, pb = pb, pa
+				}
+				count := matrix[Pair{A: pa, B: pb}]
+				pairs = append(pairs, Recommendation{A: pa, B: pb, Count: count})
+			}
+			sum := 0
+			for _, p := range pairs {
+				sum += p.Count
+			}
+			if sum < minSum {
+				minSum = sum
+				best = append([]Recommendation(nil), pairs...)
+			}
+			return
+		}
+		if used[pos] {
+			search(pos + 1)
+			return
+		}
+		used[pos] = true
+		for j := pos + 1; j < n; j++ {
+			if used[j] {
+				continue
+			}
+			used[j] = true
+			perm[pos], perm[j] = perm[j], perm[pos]
+			search(pos + 2)
+			perm[pos], perm[j] = perm[j], perm[pos]
+			used[j] = false
+		}
+		used[pos] = false
+	}
+
+	search(0)
+	// If odd, add the unpaired dev as a single
+	if n%2 != 0 {
+		unpaired := ""
+		usedMap := make(map[string]bool)
+		for _, r := range best {
+			usedMap[r.A] = true
+			usedMap[r.B] = true
+		}
+		for _, d := range devs {
+			if !usedMap[d] {
+				unpaired = d
+				break
+			}
+		}
+		if unpaired != "" {
+			best = append(best, Recommendation{A: unpaired, B: "", Count: 0})
 		}
 	}
-	sort.Slice(pairCounts, func(i, j int) bool {
-		if pairCounts[i].Count != pairCounts[j].Count {
-			return pairCounts[i].Count < pairCounts[j].Count
-		}
-		if pairCounts[i].A != pairCounts[j].A {
-			return pairCounts[i].A < pairCounts[j].A
-		}
-		return pairCounts[i].B < pairCounts[j].B
-	})
-	result := make([]Recommendation, 0)
-	for _, rec := range pairCounts {
-		if !used[rec.A] && !used[rec.B] {
-			result = append(result, rec)
-			used[rec.A] = true
-			used[rec.B] = true
-		}
-	}
-	return result
+	return best
 }
