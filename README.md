@@ -36,7 +36,7 @@ Examples:
   - `1d` (1 day)
   - `2w` (2 weeks)
   - `3m` (3 months)
-  - `1y` (1 year)
+  - `4y` (4 years)
 
 Example:
 
