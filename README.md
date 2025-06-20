@@ -22,7 +22,7 @@ This will install the `pairstair` binary in your `$GOPATH/bin` or `$HOME/go/bin`
 
 ## Usage
 
-Run `pairstair` in the root of your git repository:
+Run `pairstair` in the root of a git repository:
 
 ```sh
 pairstair
@@ -58,7 +58,7 @@ If `.team` is not present, PairStair will use all authors found in the git histo
 
 ## How It Works
 
-- Scans git commits in the specified window.
+- Scans commits in the specified window.
 - For each commit, finds the author and any co-authors.
 - Groups developers by email address (so aliases are merged).
 - Builds a matrix showing how many days each pair has worked together.
