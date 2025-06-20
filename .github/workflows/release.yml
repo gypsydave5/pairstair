@@ -41,6 +41,8 @@ jobs:
     name: Create GitHub Release
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # <-- Add this line to grant permission to create releases
     steps:
       - name: Download all binaries
         uses: actions/download-artifact@v4
