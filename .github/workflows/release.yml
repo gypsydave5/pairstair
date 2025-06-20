@@ -30,21 +30,21 @@ jobs:
           mkdir -p dist
           GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o dist/pairstair-${{ matrix.goos }}-${{ matrix.goarch }} .
 
-      - name: Upload binaries
+      - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
-          name: pairstair-binaries
-          path: dist/*
+          # Use a unique artifact name for each job (include the run attempt)
+          name: pairstair-${{ matrix.goos }}-${{ matrix.goarch }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: dist/pairstair-${{ matrix.goos }}-${{ matrix.goarch }}
 
   release:
     name: Create GitHub Release
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Download binaries
+      - name: Download all binaries
         uses: actions/download-artifact@v4
         with:
-          name: pairstair-binaries
           path: dist
 
       - name: Get tag name
@@ -58,4 +58,4 @@ jobs:
           name: Release ${{ env.TAG_NAME }}
           draft: false
           prerelease: false
-          files: dist/*
+          files: dist/**/*
