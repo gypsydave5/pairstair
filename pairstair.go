@@ -9,6 +9,7 @@ import (
 
 func main() {
 	window := flag.String("window", "1w", "Time window to examine (e.g. 1d, 2w, 3m, 1y)")
+	output := flag.String("output", "cli", "Output format: 'cli' (default) or 'html'")
 	flag.Parse()
 
 	wd, err := os.Getwd()
@@ -35,6 +36,15 @@ func main() {
 	}
 
 	matrix, devs, shortLabels, emailToName := BuildPairMatrix(commits, team, useTeam)
-	PrintPairMatrix(matrix, devs, shortLabels, emailToName)
-	PrintPairRecommendations(matrix, devs, shortLabels)
+
+	if *output == "html" {
+		err := RenderHTMLAndOpen(matrix, devs, shortLabels, emailToName)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error rendering HTML: %v\n", err)
+			os.Exit(1)
+		}
+	} else {
+		PrintMatrixCLI(matrix, devs, shortLabels, emailToName)
+		PrintRecommendationsCLI(matrix, devs, shortLabels)
+	}
 }

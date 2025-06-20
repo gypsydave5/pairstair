@@ -30,7 +30,9 @@ pairstair
 
 ### Options
 
-- `-window <window>`: Set the time window to analyze. Examples:
+#### `-window <window>`: Set the time window to analyze.
+
+Examples:
   - `1d` (1 day)
   - `2w` (2 weeks)
   - `3m` (3 months)
@@ -41,6 +43,12 @@ Example:
 ```sh
 pairstair -window 4w
 ```
+
+#### `-output <type>`: Set the output format.
+
+Options:
+  - `cli` (default): Prints the pairing matrix on the command line.
+  - `html`: Outputs the pairing data in HTML and opens it in a web browser.
 
 ### The `.team` File
 
