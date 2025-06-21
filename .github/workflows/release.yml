@@ -37,12 +37,36 @@ jobs:
           name: pairstair-${{ matrix.goos }}-${{ matrix.goarch }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: dist/pairstair-${{ matrix.goos }}-${{ matrix.goarch }}
 
+  man-page:
+    name: Build man page
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pandoc
+        run: sudo apt-get update && sudo apt-get install -y pandoc
+
+      - name: Build man page
+        run: |
+          mkdir -p dist
+          cd docs
+          chmod +x gen-man.sh
+          ./gen-man.sh
+          cp pairstair.1 ../dist/
+
+      - name: Upload man page
+        uses: actions/upload-artifact@v4
+        with:
+          name: pairstair-man-page-${{ github.run_id }}-${{ github.run_attempt }}
+          path: dist/pairstair.1
+
   release:
     name: Create GitHub Release
-    needs: build
+    needs: [build, man-page]
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # <-- Add this line to grant permission to create releases
+      contents: write
     steps:
       - name: Download all binaries
         uses: actions/download-artifact@v4
