@@ -85,3 +85,15 @@ jobs:
           draft: false
           prerelease: false
           files: dist/**/*
+
+      - name: Extract version without 'v' prefix
+        id: version
+        run: echo "VERSION=${TAG_NAME#v}" >> $GITHUB_ENV
+
+      - name: Trigger homebrew formula update
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: gypsydave5/homebrew-pairstair
+          event-type: update-formula
+          client-payload: '{"inputs": { "version": "${{ env.VERSION }}" } }'
