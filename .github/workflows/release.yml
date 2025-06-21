@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*.*.*'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build binaries
@@ -93,7 +96,7 @@ jobs:
       - name: Trigger homebrew formula update
         uses: peter-evans/repository-dispatch@v2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT_TOKEN }}
           repository: gypsydave5/homebrew-pairstair
           event-type: update-formula
-          client-payload: '{"inputs": { "version": "${{ env.VERSION }}" } }'
+          client-payload: '{"version": "${{ env.VERSION }}"}'
