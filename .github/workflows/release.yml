@@ -96,7 +96,7 @@ jobs:
       - name: Trigger homebrew formula update
         uses: peter-evans/repository-dispatch@v2
         with:
-          token: ${{ secrets.PAT_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           repository: gypsydave5/homebrew-pairstair
           event-type: update-formula
           client-payload: '{"version": "${{ env.VERSION }}"}'
