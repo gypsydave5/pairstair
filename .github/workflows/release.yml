@@ -108,5 +108,5 @@ jobs:
         with:
           token: ${{ secrets.HOMEBREW_UPDATE_TOKEN }}
           repository: gypsydave5/homebrew-pairstair
-          event-type: update-formula
+          event-type: pairstair-release
           client-payload: '{"version": "${{ env.VERSION }}"}'
