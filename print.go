@@ -45,6 +45,11 @@ func PrintMatrixCLI(matrix map[Pair]int, devs []string, shortLabels map[string]s
 // Print recommendations to the CLI
 func PrintRecommendationsCLI(matrix map[Pair]int, devs []string, shortLabels map[string]string) {
 	fmt.Println()
+	if len(devs) > 10 {
+		fmt.Println("Skipping pairing recommendations - too many developers (> 10)")
+		return
+	}
+
 	fmt.Println("Pairing Recommendations (least-paired overall, optimal matching):")
 	recommendations := recommendPairsOptimal(devs, matrix)
 	for _, rec := range recommendations {
@@ -121,18 +126,25 @@ th { background: #eee; }
 	b.WriteString("</table>")
 
 	// Recommendations
-	b.WriteString("<div class=\"recommend\"><h2>Pairing Recommendations (least-paired overall, optimal matching)</h2><ul>")
-	recommendations := recommendPairsOptimal(devs, matrix)
-	for _, rec := range recommendations {
-		labelA := shortLabels[rec.A]
-		labelB := shortLabels[rec.B]
-		if rec.B == "" {
-			b.WriteString(fmt.Sprintf("<li><b>%s</b> (unpaired)</li>", labelA))
-		} else {
-			b.WriteString(fmt.Sprintf("<li><b>%s</b> &lt;-&gt; <b>%s</b> : %d times</li>", labelA, labelB, rec.Count))
+	b.WriteString("<div class=\"recommend\">")
+	if len(devs) > 10 {
+		b.WriteString("<h2>Pairing Recommendations</h2>")
+		b.WriteString("<p>Skipping pairing recommendations - too many developers (> 10)</p>")
+	} else {
+		b.WriteString("<h2>Pairing Recommendations (least-paired overall, optimal matching)</h2><ul>")
+		recommendations := recommendPairsOptimal(devs, matrix)
+		for _, rec := range recommendations {
+			labelA := shortLabels[rec.A]
+			labelB := shortLabels[rec.B]
+			if rec.B == "" {
+				b.WriteString(fmt.Sprintf("<li><b>%s</b> (unpaired)</li>", labelA))
+			} else {
+				b.WriteString(fmt.Sprintf("<li><b>%s</b> &lt;-&gt; <b>%s</b> : %d times</li>", labelA, labelB, rec.Count))
+			}
 		}
+		b.WriteString("</ul>")
 	}
-	b.WriteString("</ul></div>")
+	b.WriteString("</div>")
 
 	b.WriteString("</body></html>")
 	return b.String()

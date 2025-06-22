@@ -11,18 +11,30 @@ type Pair struct {
 }
 
 func BuildPairMatrix(commits []Commit, team []string, useTeam bool) (map[Pair]int, []string, map[string]string, map[string]string) {
-	authorToEmail := make(map[string]string)
+	// Maps to track emails and names
 	emailToName := make(map[string]string)
+	emailToPrimaryEmail := make(map[string]string) // Maps all emails to a "primary" email
+
 	teamSet := make(map[string]struct{}, len(team))
 	for _, t := range team {
 		teamSet[t] = struct{}{}
 	}
+
+	// Process team file
 	if useTeam {
 		for _, t := range team {
-			email := extractEmail(t)
 			name := extractName(t)
-			authorToEmail[t] = email
-			emailToName[email] = name
+			emails := extractAllEmails(t)
+
+			if len(emails) > 0 {
+				primaryEmail := emails[0] // First email is the primary one
+
+				// Associate all emails with this name and primary email
+				for _, email := range emails {
+					emailToName[email] = name
+					emailToPrimaryEmail[email] = primaryEmail
+				}
+			}
 		}
 	}
 
@@ -32,30 +44,64 @@ func BuildPairMatrix(commits []Commit, team []string, useTeam bool) (map[Pair]in
 	for _, c := range commits {
 		var devs []string
 		if useTeam {
-			if _, ok := teamSet[c.Author]; !ok {
-				continue
+			// Get author email and check if it's in the team
+			authorEmail := extractEmail(c.Author)
+			_, inTeam := emailToPrimaryEmail[authorEmail]
+
+			if !inTeam {
+				continue // Skip commits from authors not in team
 			}
+
+			// Filter co-authors to only include team members
 			filteredCoAuthors := make([]string, 0, len(c.CoAuthors))
 			for _, ca := range c.CoAuthors {
-				if _, ok := teamSet[ca]; ok {
+				coAuthorEmail := extractEmail(ca)
+				if _, ok := emailToPrimaryEmail[coAuthorEmail]; ok {
 					filteredCoAuthors = append(filteredCoAuthors, ca)
 				}
 			}
 			devs = append([]string{c.Author}, filteredCoAuthors...)
 		} else {
 			devs = append([]string{c.Author}, c.CoAuthors...)
+			for _, d := range devs {
+				email := extractEmail(d)
+				name := extractName(d)
+				if _, ok := emailToName[email]; !ok {
+					emailToName[email] = name
+				}
+			}
 		}
+
+		// Create a set of unique developers (by primary email)
 		emailMap := make(map[string]struct{})
 		for _, d := range devs {
 			email := extractEmail(d)
-			name := extractName(d)
-			authorToEmail[d] = email
-			if _, ok := emailToName[email]; !ok {
-				emailToName[email] = name
+
+			// If using team, map to primary email
+			if useTeam {
+				if primaryEmail, ok := emailToPrimaryEmail[email]; ok {
+					emailMap[primaryEmail] = struct{}{}
+				} else {
+					// Not using team or email not in team
+					emailMap[email] = struct{}{}
+				}
+			} else {
+				// Not using team
+				emailMap[email] = struct{}{}
 			}
-			emailMap[email] = struct{}{}
-			devsSet[email] = struct{}{}
+
+			// Track all developers we've seen (by primary email if in team)
+			if useTeam {
+				if primaryEmail, ok := emailToPrimaryEmail[email]; ok {
+					devsSet[primaryEmail] = struct{}{}
+				} else {
+					devsSet[email] = struct{}{}
+				}
+			} else {
+				devsSet[email] = struct{}{}
+			}
 		}
+
 		uniqueDevs := make([]string, 0, len(emailMap))
 		for e := range emailMap {
 			uniqueDevs = append(uniqueDevs, e)
@@ -63,6 +109,8 @@ func BuildPairMatrix(commits []Commit, team []string, useTeam bool) (map[Pair]in
 		if len(uniqueDevs) < 2 {
 			continue
 		}
+
+		// Create pairs for this date
 		sort.Strings(uniqueDevs)
 		date := c.Date.Format("2006-01-02")
 		if _, ok := datePairs[date]; !ok {
@@ -76,15 +124,21 @@ func BuildPairMatrix(commits []Commit, team []string, useTeam bool) (map[Pair]in
 		}
 	}
 
+	// Build list of developers
 	devs := make([]string, 0, len(devsSet))
 	for d := range devsSet {
 		devs = append(devs, d)
 	}
+
+	// Add any team members not found in commits
 	if useTeam {
 		for _, t := range team {
-			email := extractEmail(t)
-			if _, ok := devsSet[email]; !ok {
-				devs = append(devs, email)
+			emails := extractAllEmails(t)
+			if len(emails) > 0 {
+				primaryEmail := emails[0]
+				if _, ok := devsSet[primaryEmail]; !ok {
+					devs = append(devs, primaryEmail)
+				}
 			}
 		}
 	}
@@ -92,6 +146,7 @@ func BuildPairMatrix(commits []Commit, team []string, useTeam bool) (map[Pair]in
 
 	shortLabels := makeShortLabelsWithNames(devs, emailToName)
 
+	// Build final matrix
 	matrix := make(map[Pair]int)
 	for _, pairs := range datePairs {
 		seen := make(map[Pair]struct{})

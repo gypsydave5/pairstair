@@ -24,7 +24,15 @@ The tool scans commits in the specified time window, finds the author and any co
 
 # TEAM FILE
 
-If a `.team` file is present in the working directory, only developers listed (one per line, as `Name <email>`) are included in the analysis. If no `.team` file exists, all authors from the git history are included.
+If a `.team` file is present in the working directory, only developers listed are included in the analysis. Each line should contain a developer's display name followed by their email address(es) in angle brackets. For developers who use multiple email addresses, separate them with commas and enclose each in angle brackets:
+
+    Alice Example <alice@example.com>,<alice@gmail.com>
+    Bob Dev <bob@example.com>
+    Carol Tester <carol@example.com>,<carol@personal.com>
+
+When multiple email addresses are specified for one developer, commits from any of those addresses will be attributed to the same person. This helps create an accurate pairing matrix even when developers use different email addresses.
+
+If no `.team` file exists, all authors from the git history are included.
 
 # EXAMPLES
 

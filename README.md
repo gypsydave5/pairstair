@@ -64,15 +64,19 @@ Options:
 
 ### The `.team` File
 
-If you want to restrict the analysis to a specific team, create a `.team` file in your repository root. Each line should be a git author string (e.g., `Alice Example <alice@example.com>`).
+If you want to restrict the analysis to a specific team, create a `.team` file in your repository root. Each line should contain a developer's display name followed by their email address(es) in angle brackets.
+
+**Multiple email addresses**: You can specify multiple email addresses for the same developer by separating them with commas (`,`) and enclosing each in angle brackets (`<>`).
 
 Example `.team`:
 
 ```
-Alice Example <alice@example.com>
+Alice Example <alice@example.com>,<alice@gmail.com>
 Bob Dev <bob@example.com>
-Carol Tester <carol@example.com>
+Carol Tester <carol@example.com>,<carol@personal.com>,<carol@old-company.com>
 ```
+
+If a developer has commits from different email addresses, they will be treated as the same person when calculating the pairing matrix.
 
 If `.team` is not present, PairStair will use all authors found in the git history.
 
@@ -80,10 +84,10 @@ If `.team` is not present, PairStair will use all authors found in the git histo
 
 - Scans commits in the specified window.
 - For each commit, finds the author and any co-authors.
-- Groups developers by email address (so aliases are merged).
+- Groups developers by email address (so aliases are merged, and multiple email addresses in the `.team` file are combined).
 - Builds a matrix showing how many days each pair has worked together.
 - Prints a legend mapping short initials to developer names/emails.
-- Prints pairing recommendations, suggesting pairs who have worked together the least.
+- Prints pairing recommendations, suggesting pairs who have worked together the least (only if total number of developers is 10 or less).
 
 ## Example Output
 
