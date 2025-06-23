@@ -6,6 +6,9 @@ import (
 	"strings"
 )
 
+// Maps all emails to their canonical email (first one listed for a developer)
+var emailToCanonical = map[string]string{}
+
 func readTeamFile(filename string) ([]string, error) {
 	f, err := os.Open(filename)
 	if err != nil {
@@ -27,7 +30,12 @@ func readTeamFile(filename string) ([]string, error) {
 func extractEmail(author string) string {
 	emails := extractAllEmails(author)
 	if len(emails) > 0 {
-		return emails[0]
+		email := emails[0]
+		// If we have a canonical mapping for this email, use it
+		if canonical, ok := emailToCanonical[email]; ok {
+			return canonical
+		}
+		return email
 	}
 	return strings.ToLower(strings.TrimSpace(author))
 }
@@ -64,4 +72,24 @@ func extractName(author string) string {
 		name = strings.TrimSpace(author[:idx])
 	}
 	return name
+}
+
+// Build the mapping from all emails to their canonical emails
+func buildEmailMapping(team []string) {
+	emailToCanonical = make(map[string]string)
+
+	for _, member := range team {
+		emails := extractAllEmails(member)
+		if len(emails) == 0 {
+			continue
+		}
+
+		// The first email is the canonical one
+		canonical := emails[0]
+
+		// Map all emails for this developer to the canonical one
+		for _, email := range emails {
+			emailToCanonical[email] = canonical
+		}
+	}
 }
