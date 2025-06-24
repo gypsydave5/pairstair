@@ -17,11 +17,17 @@ Co-authored-by: Bob <bob@example.com>
 	if len(coauthors) != 2 {
 		t.Fatalf("expected 2 coauthors, got %d", len(coauthors))
 	}
-	if coauthors[0] != "Alice <alice@example.com>" {
-		t.Errorf("unexpected coauthor: %s", coauthors[0])
+	if coauthors[0].DisplayName != "Alice" {
+		t.Errorf("unexpected coauthor name: %s", coauthors[0].DisplayName)
 	}
-	if coauthors[1] != "Bob <bob@example.com>" {
-		t.Errorf("unexpected coauthor: %s", coauthors[1])
+	if coauthors[0].CanonicalEmail() != "alice@example.com" {
+		t.Errorf("unexpected coauthor email: %s", coauthors[0].CanonicalEmail())
+	}
+	if coauthors[1].DisplayName != "Bob" {
+		t.Errorf("unexpected coauthor name: %s", coauthors[1].DisplayName)
+	}
+	if coauthors[1].CanonicalEmail() != "bob@example.com" {
+		t.Errorf("unexpected coauthor email: %s", coauthors[1].CanonicalEmail())
 	}
 }
 
@@ -29,18 +35,18 @@ func TestMatrixLogic(t *testing.T) {
 	commits := []Commit{
 		{
 			Date:      time.Date(2024, 6, 1, 10, 0, 0, 0, time.UTC),
-			Author:    "Alice <alice@example.com>",
-			CoAuthors: []string{"Bob <bob@example.com>"},
+			Author:    NewDeveloper("Alice <alice@example.com>"),
+			CoAuthors: []Developer{NewDeveloper("Bob <bob@example.com>")},
 		},
 		{
 			Date:      time.Date(2024, 6, 1, 15, 0, 0, 0, time.UTC),
-			Author:    "Bob <bob@example.com>",
-			CoAuthors: []string{"Alice <alice@example.com>"},
+			Author:    NewDeveloper("Bob <bob@example.com>"),
+			CoAuthors: []Developer{NewDeveloper("Alice <alice@example.com>")},
 		},
 		{
 			Date:      time.Date(2024, 6, 2, 10, 0, 0, 0, time.UTC),
-			Author:    "Alice <alice@example.com>",
-			CoAuthors: []string{"Carol <carol@example.com>"},
+			Author:    NewDeveloper("Alice <alice@example.com>"),
+			CoAuthors: []Developer{NewDeveloper("Carol <carol@example.com>")},
 		},
 	}
 
@@ -70,13 +76,13 @@ func TestMultipleEmailsInTeamFile(t *testing.T) {
 	commits := []Commit{
 		{
 			Date:      time.Date(2024, 6, 1, 10, 0, 0, 0, time.UTC),
-			Author:    "Alice <alice@example.com>",
-			CoAuthors: []string{"Bob <bob@example.com>"},
+			Author:    NewDeveloper("Alice <alice@example.com>"),
+			CoAuthors: []Developer{NewDeveloper("Bob <bob@example.com>")},
 		},
 		{
 			Date:      time.Date(2024, 6, 2, 10, 0, 0, 0, time.UTC),
-			Author:    "Alice <alice.work@company.com>",
-			CoAuthors: []string{"Bob <bob@example.com>"},
+			Author:    NewDeveloper("Alice <alice.work@company.com>"),
+			CoAuthors: []Developer{NewDeveloper("Bob <bob@example.com>")},
 		},
 	}
 
@@ -120,8 +126,8 @@ func TestTeamFileCanonicalName(t *testing.T) {
 	commits := []Commit{
 		{
 			Date:      time.Date(2024, 6, 1, 10, 0, 0, 0, time.UTC),
-			Author:    "Different Alice <alice@example.com>",
-			CoAuthors: []string{"Bob <bob@example.com>"},
+			Author:    NewDeveloper("Different Alice <alice@example.com>"),
+			CoAuthors: []Developer{NewDeveloper("Bob <bob@example.com>")},
 		},
 	}
 
@@ -146,10 +152,10 @@ func TestMultipleAuthorsInCommit(t *testing.T) {
 	commits := []Commit{
 		{
 			Date:   time.Date(2024, 6, 1, 10, 0, 0, 0, time.UTC),
-			Author: "Alice <alice@example.com>",
-			CoAuthors: []string{
-				"Bob <bob@example.com>",
-				"Carol <carol@example.com>",
+			Author: NewDeveloper("Alice <alice@example.com>"),
+			CoAuthors: []Developer{
+				NewDeveloper("Bob <bob@example.com>"),
+				NewDeveloper("Carol <carol@example.com>"),
 			},
 		},
 	}

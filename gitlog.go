@@ -12,8 +12,8 @@ import (
 
 type Commit struct {
 	Date      time.Time
-	Author    string
-	CoAuthors []string
+	Author    Developer
+	CoAuthors []Developer
 }
 
 func getGitCommitsSince(window string) ([]Commit, error) {
@@ -46,7 +46,7 @@ func getGitCommitsSince(window string) ([]Commit, error) {
 		case 0:
 			// commit hash, skip
 		case 1:
-			c.Author = line
+			c.Author = NewDeveloper(line)
 		case 2:
 			t, err := time.Parse("2006-01-02 15:04:05 -0700", line)
 			if err != nil {
@@ -66,12 +66,13 @@ func getGitCommitsSince(window string) ([]Commit, error) {
 
 var coAuthorRe = regexp.MustCompile(`Co-authored-by:\s*(.+?)\s*<(.+?)>`)
 
-func parseCoAuthors(body string) []string {
-	var coauthors []string
+func parseCoAuthors(body string) []Developer {
+	var coauthors []Developer
 	for _, line := range strings.Split(body, "\n") {
 		m := coAuthorRe.FindStringSubmatch(line)
 		if m != nil {
-			coauthors = append(coauthors, fmt.Sprintf("%s <%s>", m[1], m[2]))
+			authorString := fmt.Sprintf("%s <%s>", m[1], m[2])
+			coauthors = append(coauthors, NewDeveloper(authorString))
 		}
 	}
 	return coauthors

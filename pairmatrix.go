@@ -54,30 +54,29 @@ func BuildPairMatrix(team Team, commits []Commit, useTeam bool) (*Matrix, []stri
 	devsSet := make(map[string]struct{})
 
 	for _, c := range commits {
-		var devsInCommit []string
+		var devsInCommit []Developer
 		if useTeam {
 			// Get author email and check if it's in the team
-			authorEmail := extractEmail(c.Author)
+			authorEmail := c.Author.CanonicalEmail()
 			if !team.HasDeveloper(authorEmail) {
 				continue // Skip commits from authors not in team
 			}
 
 			// Filter co-authors to only include team members
-			filteredCoAuthors := make([]string, 0, len(c.CoAuthors))
+			filteredCoAuthors := make([]Developer, 0, len(c.CoAuthors))
 			for _, ca := range c.CoAuthors {
-				coAuthorEmail := extractEmail(ca)
+				coAuthorEmail := ca.CanonicalEmail()
 				if team.HasDeveloper(coAuthorEmail) {
 					filteredCoAuthors = append(filteredCoAuthors, ca)
 				}
 			}
-			devsInCommit = append([]string{c.Author}, filteredCoAuthors...)
+			devsInCommit = append([]Developer{c.Author}, filteredCoAuthors...)
 		} else {
-			devsInCommit = append([]string{c.Author}, c.CoAuthors...)
+			devsInCommit = append([]Developer{c.Author}, c.CoAuthors...)
 			for _, d := range devsInCommit {
-				email := extractEmail(d)
-				name := extractName(d)
+				email := d.CanonicalEmail()
 				if _, ok := emailToName[email]; !ok {
-					emailToName[email] = name
+					emailToName[email] = d.DisplayName
 				}
 			}
 		}
@@ -85,7 +84,7 @@ func BuildPairMatrix(team Team, commits []Commit, useTeam bool) (*Matrix, []stri
 		// Create a set of unique developers (by primary email)
 		emailMap := make(map[string]struct{})
 		for _, d := range devsInCommit {
-			email := extractEmail(d)
+			email := d.CanonicalEmail()
 
 			// If using team, map to primary email
 			if useTeam {

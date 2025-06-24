@@ -37,7 +37,6 @@ func NewTeam(team []string) (Team, error) {
 	developers := make(map[string]Developer)
 	emailToName := make(map[string]string)
 	emailToPrimaryEmail := make(map[string]string)
-	emailToDeveloper := make(map[string]Developer)
 
 	for _, member := range team {
 		developer := NewDeveloper(member)
@@ -49,7 +48,6 @@ func NewTeam(team []string) (Team, error) {
 		for _, email := range developer.EmailAddresses {
 			emailToName[email] = developer.DisplayName
 			emailToPrimaryEmail[email] = developer.CanonicalEmail()
-			emailToDeveloper[email] = developer
 		}
 
 		developers[developer.CanonicalEmail()] = developer
@@ -85,6 +83,10 @@ func extractEmail(author string) string {
 	emails := extractAllEmails(author)
 	if len(emails) > 0 {
 		email := emails[0]
+		// If we have a canonical mapping for this email, use it
+		if canonical, ok := emailToCanonical[email]; ok {
+			return canonical
+		}
 		return email
 	}
 	return strings.ToLower(strings.TrimSpace(author))
