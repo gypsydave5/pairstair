@@ -16,10 +16,10 @@ type Team struct {
 	emailToPrimaryEmail map[string]string // Maps all emails to their canonical/primary email
 }
 
-type Developer struct {
-	DisplayName     string
-	EmailAddresses  []string
-	AbbreviatedName string
+// HasDeveloper checks if the given email belongs to a developer on the team
+func (t Team) HasDeveloper(email string) bool {
+	_, ok := t.emailToPrimaryEmail[email]
+	return ok
 }
 
 func NewTeamFromFile(filename string) (Team, error) {
@@ -33,30 +33,26 @@ func NewTeamFromFile(filename string) (Team, error) {
 
 func NewTeam(team []string) (Team, error) {
 	buildEmailMapping(team)
+
 	developers := make(map[string]Developer)
 	emailToName := make(map[string]string)
 	emailToPrimaryEmail := make(map[string]string)
+	emailToDeveloper := make(map[string]Developer)
 
 	for _, member := range team {
-		name := extractName(member)
-		emails := extractAllEmails(member)
-		if len(emails) == 0 {
+		developer := NewDeveloper(member)
+		if len(developer.EmailAddresses) == 0 {
 			continue
 		}
 
-		canonicalEmail := emails[0]
-
 		// Associate all emails with this name and primary email
-		for _, email := range emails {
-			emailToName[email] = name
-			emailToPrimaryEmail[email] = canonicalEmail
+		for _, email := range developer.EmailAddresses {
+			emailToName[email] = developer.DisplayName
+			emailToPrimaryEmail[email] = developer.CanonicalEmail()
+			emailToDeveloper[email] = developer
 		}
 
-		developers[canonicalEmail] = Developer{
-			DisplayName:     name,
-			EmailAddresses:  emails,
-			AbbreviatedName: shortName(name),
-		}
+		developers[developer.CanonicalEmail()] = developer
 	}
 
 	return Team{
@@ -65,26 +61,6 @@ func NewTeam(team []string) (Team, error) {
 		emailToName:         emailToName,
 		emailToPrimaryEmail: emailToPrimaryEmail,
 	}, nil
-}
-
-func shortName(name string) string {
-	// Initials of all the words in a string
-	words := strings.Fields(name)
-	if len(words) == 0 {
-		return "NAN"
-	}
-
-	initials := make([]string, len(words))
-
-	for i, word := range words {
-		if len(word) > 0 {
-			initials[i] = strings.ToUpper(string(word[0]))
-		} else {
-			initials[i] = "."
-		}
-	}
-
-	return strings.Join(initials, "")
 }
 
 func readTeamFile(filename string) ([]string, error) {
@@ -109,47 +85,9 @@ func extractEmail(author string) string {
 	emails := extractAllEmails(author)
 	if len(emails) > 0 {
 		email := emails[0]
-		// If we have a canonical mapping for this email, use it
-		if canonical, ok := emailToCanonical[email]; ok {
-			return canonical
-		}
 		return email
 	}
 	return strings.ToLower(strings.TrimSpace(author))
-}
-
-// Extract all emails from "Name <email1>,<email2>,<email3>"
-func extractAllEmails(author string) []string {
-	var emails []string
-
-	// Find all email parts between < and >
-	parts := strings.Split(author, "<")
-	for i := 1; i < len(parts); i++ {
-		if idx := strings.Index(parts[i], ">"); idx >= 0 {
-			email := strings.TrimSpace(parts[i][:idx])
-			if email != "" {
-				emails = append(emails, strings.ToLower(email))
-			}
-		}
-	}
-
-	if len(emails) == 0 {
-		email := strings.ToLower(strings.TrimSpace(author))
-		if email != "" {
-			emails = append(emails, email)
-		}
-	}
-
-	return emails
-}
-
-// Extract just the name part from "Name <email>"
-func extractName(author string) string {
-	name := author
-	if idx := strings.Index(author, "<"); idx > 0 {
-		name = strings.TrimSpace(author[:idx])
-	}
-	return name
 }
 
 // Build the mapping from all emails to their canonical emails
