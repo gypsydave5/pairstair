@@ -54,7 +54,7 @@ func BuildPairMatrix(team Team, commits []Commit, useTeam bool) (*Matrix, []stri
 	devsSet := make(map[string]struct{})
 
 	for _, c := range commits {
-		var devs []string
+		var devsInCommit []string
 		if useTeam {
 			// Get author email and check if it's in the team
 			authorEmail := extractEmail(c.Author)
@@ -70,10 +70,10 @@ func BuildPairMatrix(team Team, commits []Commit, useTeam bool) (*Matrix, []stri
 					filteredCoAuthors = append(filteredCoAuthors, ca)
 				}
 			}
-			devs = append([]string{c.Author}, filteredCoAuthors...)
+			devsInCommit = append([]string{c.Author}, filteredCoAuthors...)
 		} else {
-			devs = append([]string{c.Author}, c.CoAuthors...)
-			for _, d := range devs {
+			devsInCommit = append([]string{c.Author}, c.CoAuthors...)
+			for _, d := range devsInCommit {
 				email := extractEmail(d)
 				name := extractName(d)
 				if _, ok := emailToName[email]; !ok {
@@ -84,7 +84,7 @@ func BuildPairMatrix(team Team, commits []Commit, useTeam bool) (*Matrix, []stri
 
 		// Create a set of unique developers (by primary email)
 		emailMap := make(map[string]struct{})
-		for _, d := range devs {
+		for _, d := range devsInCommit {
 			email := extractEmail(d)
 
 			// If using team, map to primary email
