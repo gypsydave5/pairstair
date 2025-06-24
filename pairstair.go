@@ -35,7 +35,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	matrix, devs, shortLabels, emailToName := BuildPairMatrix(commits, team, useTeam)
+	matrix, devs, shortLabels, emailToName := BuildPairMatrix(team, commits, useTeam)
 
 	if *output == "html" {
 		err := RenderHTMLAndOpen(matrix, devs, shortLabels, emailToName)

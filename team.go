@@ -10,8 +10,10 @@ import (
 var emailToCanonical = map[string]string{}
 
 type Team struct {
-	team       []string
-	developers map[string]Developer
+	team                []string
+	developers          map[string]Developer
+	emailToName         map[string]string // Maps emails to display names
+	emailToPrimaryEmail map[string]string // Maps all emails to their canonical/primary email
 }
 
 type Developer struct {
@@ -32,8 +34,11 @@ func NewTeamFromFile(filename string) (Team, error) {
 func NewTeam(team []string) (Team, error) {
 	buildEmailMapping(team)
 	developers := make(map[string]Developer)
+	emailToName := make(map[string]string)
+	emailToPrimaryEmail := make(map[string]string)
 
 	for _, member := range team {
+		name := extractName(member)
 		emails := extractAllEmails(member)
 		if len(emails) == 0 {
 			continue
@@ -41,7 +46,11 @@ func NewTeam(team []string) (Team, error) {
 
 		canonicalEmail := emails[0]
 
-		name := extractName(member)
+		// Associate all emails with this name and primary email
+		for _, email := range emails {
+			emailToName[email] = name
+			emailToPrimaryEmail[email] = canonicalEmail
+		}
 
 		developers[canonicalEmail] = Developer{
 			DisplayName:     name,
@@ -51,8 +60,10 @@ func NewTeam(team []string) (Team, error) {
 	}
 
 	return Team{
-		team:       team,
-		developers: developers,
+		team:                team,
+		developers:          developers,
+		emailToName:         emailToName,
+		emailToPrimaryEmail: emailToPrimaryEmail,
 	}, nil
 }
 

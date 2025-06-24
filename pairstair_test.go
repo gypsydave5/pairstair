@@ -44,7 +44,8 @@ func TestMatrixLogic(t *testing.T) {
 		},
 	}
 
-	matrix, _, _, _ := BuildPairMatrix(commits, Team{}, false)
+	emptyTeam, _ := NewTeam([]string{})
+	matrix, _, _, _ := BuildPairMatrix(emptyTeam, commits, false)
 
 	// Alice/Bob should have 1 (same day, only count once)
 	a, b := "alice@example.com", "bob@example.com"
@@ -79,7 +80,7 @@ func TestMultipleEmailsInTeamFile(t *testing.T) {
 		},
 	}
 
-	matrix, devs, _, _ := BuildPairMatrix(commits, team, true)
+	matrix, devs, _, _ := BuildPairMatrix(team, commits, true)
 
 	// We should only have 2 developers (Alice and Bob), not 3
 	if len(devs) != 2 {
@@ -125,7 +126,7 @@ func TestTeamFileCanonicalName(t *testing.T) {
 	}
 
 	// Build the matrix with useTeam=true
-	_, _, _, emailToName := BuildPairMatrix(commits, team, true)
+	_, _, _, emailToName := BuildPairMatrix(team, commits, true)
 
 	// Check that Alice's name is the canonical one from the team file
 	aliceEmail := "alice@example.com"
@@ -153,7 +154,8 @@ func TestMultipleAuthorsInCommit(t *testing.T) {
 		},
 	}
 
-	matrix, _, _, _ := BuildPairMatrix(commits, Team{}, false)
+	emptyTeam, _ := NewTeam([]string{})
+	matrix, _, _, _ := BuildPairMatrix(emptyTeam, commits, false)
 
 	// With 3 authors, we should have 3 pairs: (Alice, Bob), (Alice, Carol), (Bob, Carol)
 	if matrix.Len() != 3 {

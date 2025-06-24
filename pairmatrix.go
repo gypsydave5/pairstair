@@ -37,32 +37,17 @@ func (m *Matrix) Len() int {
 	return len(m.data)
 }
 
-func BuildPairMatrix(commits []Commit, team Team, useTeam bool) (*Matrix, []string, map[string]string, map[string]string) {
+// BuildPairMatrix constructs a pair matrix from the commits and team data
+func BuildPairMatrix(team Team, commits []Commit, useTeam bool) (*Matrix, []string, map[string]string, map[string]string) {
 	// Maps to track emails and names
 	emailToName := make(map[string]string)
-	emailToPrimaryEmail := make(map[string]string) // Maps all emails to a "primary" email
-
-	teamSet := make(map[string]struct{}, len(team.team))
-	for _, t := range team.team {
-		teamSet[t] = struct{}{}
-	}
+	emailToPrimaryEmail := make(map[string]string)
 
 	// Process team file
 	if useTeam {
-		for _, t := range team.team {
-			name := extractName(t)
-			emails := extractAllEmails(t)
-
-			if len(emails) > 0 {
-				primaryEmail := emails[0] // First email is the primary one
-
-				// Associate all emails with this name and primary email
-				for _, email := range emails {
-					emailToName[email] = name
-					emailToPrimaryEmail[email] = primaryEmail
-				}
-			}
-		}
+		// Use the pre-calculated maps from the team
+		emailToName = team.emailToName
+		emailToPrimaryEmail = team.emailToPrimaryEmail
 	}
 
 	datePairs := make(map[string]map[Pair]struct{})
@@ -159,8 +144,8 @@ func BuildPairMatrix(commits []Commit, team Team, useTeam bool) (*Matrix, []stri
 
 	// Add any team members not found in commits
 	if useTeam {
-		for _, t := range team.team {
-			emails := extractAllEmails(t)
+		for _, tm := range team.team {
+			emails := extractAllEmails(tm)
 			if len(emails) > 0 {
 				primaryEmail := emails[0]
 				if _, ok := devsSet[primaryEmail]; !ok {
