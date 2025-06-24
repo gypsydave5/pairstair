@@ -22,6 +22,11 @@ func (t Team) HasDeveloper(email string) bool {
 	return ok
 }
 
+// GetEmailMappings returns the email-to-name and email-to-primary-email mappings
+func (t Team) GetEmailMappings() (map[string]string, map[string]string) {
+	return t.emailToName, t.emailToPrimaryEmail
+}
+
 func NewTeamFromFile(filename string) (Team, error) {
 	team, err := readTeamFile(filename)
 	if err != nil {
@@ -76,20 +81,6 @@ func readTeamFile(filename string) ([]string, error) {
 		}
 	}
 	return team, scanner.Err()
-}
-
-// Extract just the email part from "Name <email>" or the first email from "Name <email1>,<email2>"
-func extractEmail(author string) string {
-	emails := extractAllEmails(author)
-	if len(emails) > 0 {
-		email := emails[0]
-		// If we have a canonical mapping for this email, use it
-		if canonical, ok := emailToCanonical[email]; ok {
-			return canonical
-		}
-		return email
-	}
-	return strings.ToLower(strings.TrimSpace(author))
 }
 
 // Build the mapping from all emails to their canonical emails

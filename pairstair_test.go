@@ -186,3 +186,229 @@ func TestMultipleAuthorsInCommit(t *testing.T) {
 		t.Errorf("expected Bob/Carol pair to have count 1, got %d", matrix.Count(b, c))
 	}
 }
+
+func TestComprehensivePairMatrix(t *testing.T) {
+	// Create a large team with developers having multiple email addresses
+	team, err := NewTeam([]string{
+		"Alice Smith <alice@example.com>,<alice.smith@company.com>,<asmith@personal.net>",
+		"Bob Jones <bob@example.com>,<bjones@company.com>",
+		"Carol Davis <carol@example.com>,<cdavis@company.com>",
+		"Dave Wilson <dave@example.com>",
+		"Eve Brown <eve@example.com>,<ebrown@company.com>",
+		"Frank Thomas <frank@example.com>",
+	})
+	if err != nil {
+		t.Fatalf("failed to create team: %v", err)
+	}
+
+	// Verify team setup
+	if len(team.developers) != 6 {
+		t.Errorf("expected 6 developers in team, got %d", len(team.developers))
+	}
+
+	// Create a comprehensive set of commits covering various scenarios
+	now := time.Date(2024, 6, 15, 12, 0, 0, 0, time.UTC)
+	day := 24 * time.Hour
+
+	commits := []Commit{
+		// Day 1: Alice pairs with Bob
+		{
+			Date:      now.Add(-14 * day),
+			Author:    NewDeveloper("Alice Smith <alice@example.com>"),
+			CoAuthors: []Developer{NewDeveloper("Bob Jones <bob@example.com>")},
+		},
+		// Day 2: Bob pairs with Carol
+		{
+			Date:      now.Add(-13 * day),
+			Author:    NewDeveloper("Bob Jones <bjones@company.com>"), // Different email
+			CoAuthors: []Developer{NewDeveloper("Carol Davis <cdavis@company.com>")},
+		},
+		// Day 3: Alice pairs with Carol and Dave (three-way pairing)
+		{
+			Date:   now.Add(-12 * day),
+			Author: NewDeveloper("Alice Smith <alice.smith@company.com>"), // Different email
+			CoAuthors: []Developer{
+				NewDeveloper("Carol Davis <carol@example.com>"),
+				NewDeveloper("Dave Wilson <dave@example.com>"),
+			},
+		},
+		// Day 4: Eve pairs with Frank
+		{
+			Date:      now.Add(-11 * day),
+			Author:    NewDeveloper("Eve Brown <ebrown@company.com>"),
+			CoAuthors: []Developer{NewDeveloper("Frank Thomas <frank@example.com>")},
+		},
+		// Day 5: Alice pairs with Eve
+		{
+			Date:      now.Add(-10 * day),
+			Author:    NewDeveloper("Alice Smith <asmith@personal.net>"), // Different email
+			CoAuthors: []Developer{NewDeveloper("Eve Brown <eve@example.com>")},
+		},
+		// Day 6: Dave pairs with Frank
+		{
+			Date:      now.Add(-9 * day),
+			Author:    NewDeveloper("Dave Wilson <dave@example.com>"),
+			CoAuthors: []Developer{NewDeveloper("Frank Thomas <frank@example.com>")},
+		},
+		// Day 7: Bob pairs with Dave
+		{
+			Date:      now.Add(-8 * day),
+			Author:    NewDeveloper("Bob Jones <bob@example.com>"),
+			CoAuthors: []Developer{NewDeveloper("Dave Wilson <dave@example.com>")},
+		},
+		// Day 7: Also, Carol pairs with Eve (same day, different pair)
+		{
+			Date:      now.Add(-8 * day),
+			Author:    NewDeveloper("Carol Davis <carol@example.com>"),
+			CoAuthors: []Developer{NewDeveloper("Eve Brown <ebrown@company.com>")},
+		},
+		// Day 8: Alice pairs with Frank
+		{
+			Date:      now.Add(-7 * day),
+			Author:    NewDeveloper("Frank Thomas <frank@example.com>"),
+			CoAuthors: []Developer{NewDeveloper("Alice Smith <alice@example.com>")},
+		},
+		// Day 9-10: No commits
+
+		// Day 11: Multiple commits for the same pair on the same day (should count once)
+		{
+			Date:      now.Add(-4 * day),
+			Author:    NewDeveloper("Bob Jones <bob@example.com>"),
+			CoAuthors: []Developer{NewDeveloper("Carol Davis <carol@example.com>")},
+		},
+		{
+			Date:      now.Add(-4 * day),
+			Author:    NewDeveloper("Carol Davis <cdavis@company.com>"),
+			CoAuthors: []Developer{NewDeveloper("Bob Jones <bjones@company.com>")},
+		},
+		// Day 12: External person not in the team (should be filtered out with useTeam=true)
+		{
+			Date:      now.Add(-3 * day),
+			Author:    NewDeveloper("External Person <external@othercompany.com>"),
+			CoAuthors: []Developer{NewDeveloper("Alice Smith <alice@example.com>")},
+		},
+		// Day 13: Alice pairs with Bob again
+		{
+			Date:      now.Add(-2 * day),
+			Author:    NewDeveloper("Alice Smith <alice@example.com>"),
+			CoAuthors: []Developer{NewDeveloper("Bob Jones <bob@example.com>")},
+		},
+		// Day 14: All team members collaborate (large pairing)
+		{
+			Date:   now.Add(-1 * day),
+			Author: NewDeveloper("Alice Smith <alice@example.com>"),
+			CoAuthors: []Developer{
+				NewDeveloper("Bob Jones <bob@example.com>"),
+				NewDeveloper("Carol Davis <carol@example.com>"),
+				NewDeveloper("Dave Wilson <dave@example.com>"),
+				NewDeveloper("Eve Brown <eve@example.com>"),
+				NewDeveloper("Frank Thomas <frank@example.com>"),
+			},
+		},
+	}
+
+	// Test with team information
+	matrix, devs, shortLabels, emailToName := BuildPairMatrix(team, commits, true)
+
+	// Check number of developers
+	if len(devs) != 6 {
+		t.Errorf("expected 6 developers, got %d: %v", len(devs), devs)
+	}
+
+	// Check expected pair counts
+	expectedPairs := map[string]map[string]int{
+		"alice@example.com": {
+			"bob@example.com":   3, // Day 1, Day 13, Day 14
+			"carol@example.com": 2, // Day 3, Day 14
+			"dave@example.com":  2, // Day 3, Day 14
+			"eve@example.com":   2, // Day 5, Day 14
+			"frank@example.com": 2, // Day 8, Day 14
+		},
+		"bob@example.com": {
+			"carol@example.com": 3, // Day 2, Day 11 (counts once), Day 14
+			"dave@example.com":  2, // Day 7, Day 14
+			"eve@example.com":   1, // Day 14
+			"frank@example.com": 1, // Day 14
+		},
+		"carol@example.com": {
+			"dave@example.com":  2, // Day 3 (three-way pairing), Day 14
+			"eve@example.com":   2, // Day 8, Day 14
+			"frank@example.com": 1, // Day 14
+		},
+		"dave@example.com": {
+			"eve@example.com":   1, // Day 14
+			"frank@example.com": 2, // Day 6, Day 14
+		},
+		"eve@example.com": {
+			"frank@example.com": 2, // Day 4, Day 14
+		},
+	}
+
+	for dev1, pairs := range expectedPairs {
+		for dev2, expectedCount := range pairs {
+			actualCount := matrix.Count(dev1, dev2)
+			if actualCount != expectedCount {
+				t.Errorf("pair %s/%s: expected count %d, got %d", dev1, dev2, expectedCount, actualCount)
+			}
+		}
+	}
+
+	// Verify short labels are created for all developers
+	if len(shortLabels) != 6 {
+		t.Errorf("expected 6 short labels, got %d", len(shortLabels))
+	}
+
+	// Verify email to name mapping
+	expectedNames := map[string]string{
+		"alice@example.com": "Alice Smith",
+		"bob@example.com":   "Bob Jones",
+		"carol@example.com": "Carol Davis",
+		"dave@example.com":  "Dave Wilson",
+		"eve@example.com":   "Eve Brown",
+		"frank@example.com": "Frank Thomas",
+	}
+
+	for email, expectedName := range expectedNames {
+		if actualName := emailToName[email]; actualName != expectedName {
+			t.Errorf("email %s: expected name %q, got %q", email, expectedName, actualName)
+		}
+	}
+
+	// Now test without team information
+	matrixNoTeam, devsNoTeam, shortLabelsNoTeam, emailToNameNoTeam := BuildPairMatrix(Team{}, commits, false)
+
+	// We expect more developers here because without team info, we don't consolidate alternate emails
+	expectedNonTeamDevsCount := 12 // All unique email addresses appear as separate developers
+	if len(devsNoTeam) != expectedNonTeamDevsCount {
+		t.Errorf("expected %d developers with no team filter, got %d: %v",
+			expectedNonTeamDevsCount, len(devsNoTeam), devsNoTeam)
+	}
+
+	// Check that external email has a label
+	var externalEmail string
+	for _, dev := range devsNoTeam {
+		if strings.Contains(dev, "external") {
+			externalEmail = dev
+			break
+		}
+	}
+
+	if externalEmail != "" {
+		if _, ok := shortLabelsNoTeam[externalEmail]; !ok {
+			t.Errorf("external email %s should have a short label", externalEmail)
+		}
+		if name, ok := emailToNameNoTeam[externalEmail]; !ok || name != "External Person" {
+			t.Errorf("external email %s should have name 'External Person', got %q", externalEmail, name)
+		}
+	} else {
+		t.Error("external email not found in no-team developers list")
+	}
+
+	// Verify the Alice-External pair exists in the no-team matrix
+	if externalEmail != "" {
+		aliceEmail := "alice@example.com"
+		if matrixNoTeam.Count(aliceEmail, externalEmail) != 1 {
+			t.Errorf("expected Alice-External pair to have count 1 in no-team matrix")
+		}
+	}
+}

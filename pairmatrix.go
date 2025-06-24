@@ -46,8 +46,7 @@ func BuildPairMatrix(team Team, commits []Commit, useTeam bool) (*Matrix, []stri
 	// Process team file
 	if useTeam {
 		// Use the pre-calculated maps from the team
-		emailToName = team.emailToName
-		emailToPrimaryEmail = team.emailToPrimaryEmail
+		emailToName, emailToPrimaryEmail = team.GetEmailMappings()
 	}
 
 	datePairs := make(map[string]map[Pair]struct{})
@@ -95,11 +94,12 @@ func BuildPairMatrix(team Team, commits []Commit, useTeam bool) (*Matrix, []stri
 					emailMap[email] = struct{}{}
 				}
 			} else {
-				// Not using team
+				// When not using team, each email is its own developer
+				// We don't try to consolidate different emails for the same person
 				emailMap[email] = struct{}{}
 			}
 
-			// Track all developers we've seen (by primary email if in team)
+			// Track all developers we've seen
 			if useTeam {
 				if primaryEmail, ok := emailToPrimaryEmail[email]; ok {
 					devsSet[primaryEmail] = struct{}{}
