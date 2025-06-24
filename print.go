@@ -5,7 +5,7 @@ import (
 )
 
 // Print the matrix and legend to the CLI
-func PrintMatrixCLI(matrix map[Pair]int, devs []string, shortLabels map[string]string, emailToName map[string]string) {
+func PrintMatrixCLI(matrix *Matrix, devs []string, shortLabels map[string]string, emailToName map[string]string) {
 	fmt.Println("Legend:")
 	for _, d := range devs {
 		name := emailToName[d]
@@ -28,18 +28,14 @@ func PrintMatrixCLI(matrix map[Pair]int, devs []string, shortLabels map[string]s
 				fmt.Printf("%-8s", "-")
 				continue
 			}
-			a, b := d1, d2
-			if a > b {
-				a, b = b, a
-			}
-			fmt.Printf("%-8d", matrix[Pair{A: a, B: b}])
+			fmt.Printf("%-8d", matrix.Count(d1, d2))
 		}
 		fmt.Println()
 	}
 }
 
 // Print recommendations to the CLI
-func PrintRecommendationsCLI(matrix map[Pair]int, devs []string, shortLabels map[string]string) {
+func PrintRecommendationsCLI(matrix *Matrix, devs []string, shortLabels map[string]string) {
 	fmt.Println()
 	if len(devs) > 10 {
 		fmt.Println("Skipping pairing recommendations - too many developers (> 10)")

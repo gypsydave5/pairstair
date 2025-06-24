@@ -7,7 +7,7 @@ type Recommendation struct {
 }
 
 // Optimal pairing using brute-force for small N (minimize total pair count, each dev appears once)
-func recommendPairsOptimal(devs []string, matrix map[Pair]int) []Recommendation {
+func recommendPairsOptimal(devs []string, matrix *Matrix) []Recommendation {
 	n := len(devs)
 	if n < 2 {
 		return nil
@@ -31,12 +31,8 @@ func recommendPairsOptimal(devs []string, matrix map[Pair]int) []Recommendation 
 			// Create pairs from current permutation
 			for i := 0; i < limit; i += 2 {
 				a, b := perm[i], perm[i+1]
-				pa, pb := a, b
-				if pa > pb {
-					pa, pb = pb, pa
-				}
-				count := matrix[Pair{A: pa, B: pb}]
-				pairs = append(pairs, Recommendation{A: pa, B: pb, Count: count})
+				count := matrix.Count(a, b)
+				pairs = append(pairs, Recommendation{A: a, B: b, Count: count})
 			}
 
 			// Calculate total pairing count

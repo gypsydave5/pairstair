@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func RenderHTMLAndOpen(matrix map[Pair]int, devs []string, shortLabels map[string]string, emailToName map[string]string) error {
+func RenderHTMLAndOpen(matrix *Matrix, devs []string, shortLabels map[string]string, emailToName map[string]string) error {
 	html := renderHTML(matrix, devs, shortLabels, emailToName)
 	tmpfile, err := os.CreateTemp("", "pairstair-*.html")
 	if err != nil {
@@ -23,7 +23,7 @@ func RenderHTMLAndOpen(matrix map[Pair]int, devs []string, shortLabels map[strin
 	return openBrowser(tmpfile.Name())
 }
 
-func renderHTML(matrix map[Pair]int, devs []string, shortLabels map[string]string, emailToName map[string]string) string {
+func renderHTML(matrix *Matrix, devs []string, shortLabels map[string]string, emailToName map[string]string) string {
 	var b strings.Builder
 	b.WriteString("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Pair Stair</title>")
 	b.WriteString(`<style>
@@ -60,11 +60,7 @@ th { background: #eee; }
 				b.WriteString("<td>-</td>")
 				continue
 			}
-			a, b2 := d1, d2
-			if a > b2 {
-				a, b2 = b2, a
-			}
-			b.WriteString(fmt.Sprintf("<td>%d</td>", matrix[Pair{A: a, B: b2}]))
+			b.WriteString(fmt.Sprintf("<td>%d</td>", matrix.Count(d1, d2)))
 		}
 		b.WriteString("</tr>")
 	}

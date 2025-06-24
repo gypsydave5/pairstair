@@ -10,7 +10,34 @@ type Pair struct {
 	A, B string
 }
 
-func BuildPairMatrix(commits []Commit, team []string, useTeam bool) (map[Pair]int, []string, map[string]string, map[string]string) {
+type Matrix struct {
+	data map[Pair]int
+}
+
+func NewMatrix() *Matrix {
+	return &Matrix{data: make(map[Pair]int)}
+}
+
+// Count returns the count of times a pair has worked together
+func (m *Matrix) Count(a, b string) int {
+	if a == b {
+		return 0 // Self-pairs always have count 0
+	}
+
+	// Ensure consistent ordering
+	if a > b {
+		a, b = b, a
+	}
+
+	return m.data[Pair{A: a, B: b}]
+}
+
+// Len returns the number of pairs in the matrix
+func (m *Matrix) Len() int {
+	return len(m.data)
+}
+
+func BuildPairMatrix(commits []Commit, team []string, useTeam bool) (*Matrix, []string, map[string]string, map[string]string) {
 	// Maps to track emails and names
 	emailToName := make(map[string]string)
 	emailToPrimaryEmail := make(map[string]string) // Maps all emails to a "primary" email
@@ -147,12 +174,12 @@ func BuildPairMatrix(commits []Commit, team []string, useTeam bool) (map[Pair]in
 	shortLabels := makeShortLabelsWithNames(devs, emailToName)
 
 	// Build final matrix
-	matrix := make(map[Pair]int)
+	matrix := NewMatrix()
 	for _, pairs := range datePairs {
 		seen := make(map[Pair]struct{})
 		for p := range pairs {
 			if _, ok := seen[p]; !ok {
-				matrix[p]++
+				matrix.data[p]++
 				seen[p] = struct{}{}
 			}
 		}

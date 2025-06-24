@@ -48,13 +48,13 @@ func TestMatrixLogic(t *testing.T) {
 
 	// Alice/Bob should have 1 (same day, only count once)
 	a, b := "alice@example.com", "bob@example.com"
-	if matrix[Pair{A: a, B: b}] != 1 && matrix[Pair{A: b, B: a}] != 1 {
-		t.Errorf("expected Alice/Bob to have 1, got %d", matrix[Pair{A: a, B: b}])
+	if matrix.Count(a, b) != 1 {
+		t.Errorf("expected Alice/Bob to have 1, got %d", matrix.Count(a, b))
 	}
 	// Alice/Carol should have 1
 	c := "carol@example.com"
-	if matrix[Pair{A: a, B: c}] != 1 && matrix[Pair{A: c, B: a}] != 1 {
-		t.Errorf("expected Alice/Carol to have 1, got %d", matrix[Pair{A: a, B: c}])
+	if matrix.Count(a, c) != 1 {
+		t.Errorf("expected Alice/Carol to have 1, got %d", matrix.Count(a, c))
 	}
 }
 
@@ -101,14 +101,10 @@ func TestMultipleEmailsInTeamFile(t *testing.T) {
 
 	// Check that both commits are counted as Alice pairing with Bob
 	bobEmail := "bob@example.com"
-	pair := Pair{A: aliceEmail, B: bobEmail}
-	if aliceEmail > bobEmail {
-		pair = Pair{A: bobEmail, B: aliceEmail}
-	}
 
 	// Should have 2 pairs (one from each day)
-	if matrix[pair] != 2 {
-		t.Errorf("expected Alice/Bob pair to have count 2, got %d", matrix[pair])
+	if matrix.Count(aliceEmail, bobEmail) != 2 {
+		t.Errorf("expected Alice/Bob pair to have count 2, got %d", matrix.Count(aliceEmail, bobEmail))
 	}
 }
 
@@ -141,5 +137,44 @@ func TestTeamFileCanonicalName(t *testing.T) {
 	bobEmail := "bob@example.com"
 	if name := emailToName[bobEmail]; name != "Bob" {
 		t.Errorf("expected name to be 'Bob', got '%s'", name)
+	}
+}
+
+func TestMultipleAuthorsInCommit(t *testing.T) {
+	// A single commit with three authors (one main author and two co-authors)
+	commits := []Commit{
+		{
+			Date:   time.Date(2024, 6, 1, 10, 0, 0, 0, time.UTC),
+			Author: "Alice <alice@example.com>",
+			CoAuthors: []string{
+				"Bob <bob@example.com>",
+				"Carol <carol@example.com>",
+			},
+		},
+	}
+
+	matrix, _, _, _ := BuildPairMatrix(commits, []string{}, false)
+
+	// With 3 authors, we should have 3 pairs: (Alice, Bob), (Alice, Carol), (Bob, Carol)
+	if matrix.Len() != 3 {
+		t.Errorf("expected 3 pairs in matrix, got %d", matrix.Len())
+	}
+
+	// Check each pair exists with count 1
+	a, b, c := "alice@example.com", "bob@example.com", "carol@example.com"
+
+	// Alice-Bob pair
+	if matrix.Count(a, b) != 1 {
+		t.Errorf("expected Alice/Bob pair to have count 1, got %d", matrix.Count(a, b))
+	}
+
+	// Alice-Carol pair
+	if matrix.Count(a, c) != 1 {
+		t.Errorf("expected Alice/Carol pair to have count 1, got %d", matrix.Count(a, c))
+	}
+
+	// Bob-Carol pair
+	if matrix.Count(b, c) != 1 {
+		t.Errorf("expected Bob/Carol pair to have count 1, got %d", matrix.Count(b, c))
 	}
 }
