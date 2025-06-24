@@ -9,6 +9,73 @@ import (
 // Maps all emails to their canonical email (first one listed for a developer)
 var emailToCanonical = map[string]string{}
 
+type Team struct {
+	team       []string
+	developers map[string]Developer
+}
+
+type Developer struct {
+	DisplayName     string
+	EmailAddresses  []string
+	AbbreviatedName string
+}
+
+func NewTeamFromFile(filename string) (Team, error) {
+	team, err := readTeamFile(filename)
+	if err != nil {
+		return Team{}, err
+	}
+
+	return NewTeam(team)
+}
+
+func NewTeam(team []string) (Team, error) {
+	buildEmailMapping(team)
+	developers := make(map[string]Developer)
+
+	for _, member := range team {
+		emails := extractAllEmails(member)
+		if len(emails) == 0 {
+			continue
+		}
+
+		canonicalEmail := emails[0]
+
+		name := extractName(member)
+
+		developers[canonicalEmail] = Developer{
+			DisplayName:     name,
+			EmailAddresses:  emails,
+			AbbreviatedName: shortName(name),
+		}
+	}
+
+	return Team{
+		team:       team,
+		developers: developers,
+	}, nil
+}
+
+func shortName(name string) string {
+	// Initials of all the words in a string
+	words := strings.Fields(name)
+	if len(words) == 0 {
+		return "NAN"
+	}
+
+	initials := make([]string, len(words))
+
+	for i, word := range words {
+		if len(word) > 0 {
+			initials[i] = strings.ToUpper(string(word[0]))
+		} else {
+			initials[i] = "."
+		}
+	}
+
+	return strings.Join(initials, "")
+}
+
 func readTeamFile(filename string) ([]string, error) {
 	f, err := os.Open(filename)
 	if err != nil {

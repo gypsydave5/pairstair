@@ -18,7 +18,7 @@ func main() {
 		os.Exit(1)
 	}
 	teamPath := filepath.Join(wd, ".team")
-	team, err := readTeamFile(teamPath)
+	team, err := NewTeamFromFile(teamPath)
 	useTeam := true
 	if err != nil {
 		if os.IsNotExist(err) {
