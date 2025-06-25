@@ -6,9 +6,6 @@ import (
 	"strings"
 )
 
-// Maps all emails to their canonical email (first one listed for a developer)
-var emailToCanonical = map[string]string{}
-
 type Team struct {
 	team                []string
 	developers          map[string]Developer
@@ -16,8 +13,8 @@ type Team struct {
 	emailToPrimaryEmail map[string]string // Maps all emails to their canonical/primary email
 }
 
-// HasDeveloper checks if the given email belongs to a developer on the team
-func (t Team) HasDeveloper(email string) bool {
+// HasDeveloperByEmail checks if the given email belongs to a developer on the team
+func (t Team) HasDeveloperByEmail(email string) bool {
 	_, ok := t.emailToPrimaryEmail[email]
 	return ok
 }
@@ -37,8 +34,6 @@ func NewTeamFromFile(filename string) (Team, error) {
 }
 
 func NewTeam(team []string) (Team, error) {
-	buildEmailMapping(team)
-
 	developers := make(map[string]Developer)
 	emailToName := make(map[string]string)
 	emailToPrimaryEmail := make(map[string]string)
@@ -81,24 +76,4 @@ func readTeamFile(filename string) ([]string, error) {
 		}
 	}
 	return team, scanner.Err()
-}
-
-// Build the mapping from all emails to their canonical emails
-func buildEmailMapping(team []string) {
-	emailToCanonical = make(map[string]string)
-
-	for _, member := range team {
-		emails := extractAllEmails(member)
-		if len(emails) == 0 {
-			continue
-		}
-
-		// The first email is the canonical one
-		canonical := emails[0]
-
-		// Map all emails for this developer to the canonical one
-		for _, email := range emails {
-			emailToCanonical[email] = canonical
-		}
-	}
 }

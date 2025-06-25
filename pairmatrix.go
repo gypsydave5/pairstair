@@ -57,7 +57,7 @@ func BuildPairMatrix(team Team, commits []Commit, useTeam bool) (*Matrix, []stri
 		if useTeam {
 			// Get author email and check if it's in the team
 			authorEmail := c.Author.CanonicalEmail()
-			if !team.HasDeveloper(authorEmail) {
+			if !team.HasDeveloperByEmail(authorEmail) {
 				continue // Skip commits from authors not in team
 			}
 
@@ -65,7 +65,7 @@ func BuildPairMatrix(team Team, commits []Commit, useTeam bool) (*Matrix, []stri
 			filteredCoAuthors := make([]Developer, 0, len(c.CoAuthors))
 			for _, ca := range c.CoAuthors {
 				coAuthorEmail := ca.CanonicalEmail()
-				if team.HasDeveloper(coAuthorEmail) {
+				if team.HasDeveloperByEmail(coAuthorEmail) {
 					filteredCoAuthors = append(filteredCoAuthors, ca)
 				}
 			}
