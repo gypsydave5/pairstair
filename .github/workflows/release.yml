@@ -15,9 +15,25 @@ permissions:
   contents: write
 
 jobs:
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Run tests
+        run: go test -v ./...
+
   build:
     name: Build binaries
     runs-on: ubuntu-latest
+    needs: test  # Only build if tests pass
     strategy:
       matrix:
         goos: [linux, darwin, windows]
@@ -49,6 +65,7 @@ jobs:
   man-page:
     name: Build man page
     runs-on: ubuntu-latest
+    needs: test  # Only build if tests pass
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -72,7 +89,7 @@ jobs:
 
   release:
     name: Create GitHub Release
-    needs: [build, man-page]
+    needs: [test, build, man-page]  # Wait for all jobs including tests
     runs-on: ubuntu-latest
     permissions:
       contents: write
