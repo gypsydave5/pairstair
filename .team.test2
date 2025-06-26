@@ -1,9 +1,0 @@
-Alice Main <alice@example.com>
-
-[frontend]
-Bob SubTeamOnly <bob@example.com>
-Carol Frontend <carol@example.com>
-
-[backend]
-Bob SubTeamOnly <bob@example.com>
-Dave Backend <dave@example.com>
