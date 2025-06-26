@@ -203,6 +203,17 @@ Pairing Recommendations (least recent collaborations first):
   AE     <-> CT     : last paired 15 days ago
 ```
 
+## Documentation
+
+For comprehensive documentation, examples, and guides, visit the **[PairStair Documentation Site](https://gypsydave5.github.io/pairstair/)**.
+
+The documentation includes:
+
+- **[Installation Guide](https://gypsydave5.github.io/pairstair/installation/)** - Multiple installation methods and setup
+- **[User Guide](https://gypsydave5.github.io/pairstair/guide/)** - Complete guide to using all features
+- **[Examples](https://gypsydave5.github.io/pairstair/examples/)** - Real-world scenarios and workflows
+- **[Features](https://gypsydave5.github.io/pairstair/features/)** - Current and planned functionality
+
 ## License
 
 MIT
