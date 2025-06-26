@@ -26,14 +26,19 @@ func parseFlags() *Config {
 	return config
 }
 
+// exitOnError exits the program with an error message if err is not nil
+func exitOnError(err error, message string) {
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s: %v\n", message, err)
+		os.Exit(1)
+	}
+}
+
 func main() {
 	config := parseFlags()
 
 	wd, err := os.Getwd()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error getting working directory: %v\n", err)
-		os.Exit(1)
-	}
+	exitOnError(err, "Error getting working directory")
 
 	teamPath := filepath.Join(wd, ".team")
 	team, err := NewTeamFromFile(teamPath, config.Team)
@@ -42,25 +47,18 @@ func main() {
 		if os.IsNotExist(err) {
 			useTeam = false
 		} else {
-			fmt.Fprintf(os.Stderr, "Error reading .team file: %v\n", err)
-			os.Exit(1)
+			exitOnError(err, "Error reading .team file")
 		}
 	}
 
 	commits, err := getGitCommitsSince(config.Window)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
-	}
+	exitOnError(err, "Error getting git commits")
 
 	matrix, pairRecency, devs, shortLabels, emailToName := BuildPairMatrix(team, commits, useTeam)
 
 	if config.Output == "html" {
 		err := RenderHTMLAndOpen(matrix, devs, shortLabels, emailToName)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error rendering HTML: %v\n", err)
-			os.Exit(1)
-		}
+		exitOnError(err, "Error rendering HTML")
 	} else {
 		PrintMatrixCLI(matrix, devs, shortLabels, emailToName)
 		PrintRecommendationsCLI(matrix, pairRecency, devs, shortLabels, config.Strategy)
