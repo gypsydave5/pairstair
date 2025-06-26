@@ -4,6 +4,8 @@ This document captures ideas for potential future enhancements to PairStair. Fee
 
 ## Feature Ideas
 
+- **Odd number of devs in recommender**: Handle this by recommending triples
+- **Pair rotation**: Infer which developers are currently working together on a feature based on the most recent commits; suggest a rotation of the developers ensuring that developers do change their current pair
 - **Ignoring Commits**: Introduce a way to ignore certain commits from the analysis, for example, by using a `.pairignore` file with commit message patterns (e.g., `chore:`, `docs:`) or a command-line flag
 - **Flexible Date Ranges**: Instead of just a relative `--window`, allow for absolute date ranges with `--since="YYYY-MM-DD"` and `--until="YYYY-MM-DD"` flags for more precise analysis
 - **Data Export Formats**: Add support for machine-readable output formats like JSON or CSV (`--output=json`). This would allow the data to be used in other tools or custom dashboards
