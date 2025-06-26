@@ -60,3 +60,22 @@ When investigating test failures or bugs:
 - Remove debug code once the issue is resolved
 
 These practices help maintain code quality and prevent regressions during development.
+
+### Git Commit Message Conventions
+
+Use consistent prefixes for commit messages to indicate the type of change:
+
+- **`-s-`** for structural changes that introduce no change in behavior (refactoring, documentation, formatting, test updates, etc.)
+- **`-b-`** for behavioral changes that modify functionality (new features, bug fixes, API changes, etc.)
+
+Examples:
+```
+-s- refactor matrix building logic for clarity
+-s- update README with new installation instructions
+-s- add tests for edge case handling
+-b- add --strategy flag for least-recent pairing
+-b- fix incorrect pair counting in team mode
+-b- change default window from 1w to 2w
+```
+
+This convention helps reviewers and maintainers quickly understand the impact and scope of changes.
