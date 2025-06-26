@@ -48,13 +48,12 @@ Dave Brown <dave@company.com>
 **Multiple strategies for optimal pair suggestions**
 
 - **Least Recent**: Pairs who haven't worked together recently
-- **Never Paired**: Developers who have never collaborated
-- **Round Robin**: Balanced rotation ensuring equal opportunities
+- **Least Paired**: Pairs who have worked together the fewest times using optimal matching
 - **Customizable**: Choose the strategy that fits your team's needs
 
 ```bash
 pairstair -strategy least-recent
-pairstair -strategy never-paired
+pairstair -strategy least-paired
 ```
 
 ### 📈 Rich HTML Output
@@ -111,6 +110,7 @@ Perfect for different analysis needs:
 
 **Intelligent rotation management**
 
+- **Round Robin Strategy**: Ensure all possible pairs get equal opportunities over time
 - Detect current working pairs from recent commits
 - Suggest optimal rotations while maintaining project continuity
 - Balance skill sharing with project deadlines

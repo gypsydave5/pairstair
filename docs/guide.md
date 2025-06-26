@@ -131,20 +131,12 @@ Recommends pairs who haven't worked together recently:
 pairstair -strategy least-recent
 ```
 
-### Never Paired
+### Least Paired
 
-Recommends developers who have never worked together:
-
-```bash
-pairstair -strategy never-paired
-```
-
-### Round Robin
-
-Ensures all possible pairs get equal opportunities:
+Recommends pairs who have worked together the fewest times, using optimal matching:
 
 ```bash
-pairstair -strategy round-robin
+pairstair -strategy least-paired
 ```
 
 ## Advanced Usage

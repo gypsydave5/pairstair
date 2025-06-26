@@ -172,7 +172,7 @@ Mike Wilson <mike@company.com>
 pairstair --team frontend -window 2w
 
 # Check if anyone hasn't paired recently
-pairstair --team frontend -window 1w -strategy never-paired
+pairstair --team frontend -window 1w -strategy least-recent
 ```
 
 **Sample Output:**
