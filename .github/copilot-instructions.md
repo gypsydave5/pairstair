@@ -138,3 +138,7 @@ Maintain a clean repository by following these practices:
    - Add appropriate entries to `.gitignore`
    - Commit the cleanup with a `-s-` prefix message
    - This prevents repository bloat and keeps the history clean
+
+### Future Feature Ideas
+
+For ideas about potential future enhancements to PairStair, see [FEATURES.md](../FEATURES.md). This is where new feature concepts should be documented and prioritized.
