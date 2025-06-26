@@ -131,16 +131,23 @@ In this example:
 **Multiple sub-teams**: If a developer needs to be in multiple sub-teams, you can duplicate their entry in each relevant section:
 
 ```
+Alice Main <alice@example.com>
+Bob BothMainAndSub <bob@example.com>
+
 [frontend]
-Bob Fullstack <bob@example.com>
-Carol Frontend <carol@example.com>
+Bob BothMainAndSub <bob@example.com>
+Carol SubTeamOnly <carol@example.com>
 
 [backend]
-Bob Fullstack <bob@example.com>
-Dave Backend <dave@example.com>
+Bob BothMainAndSub <bob@example.com>
+Dave SubTeamOnly <dave@example.com>
 ```
 
-In this case, Bob would appear in both `--team=frontend` and `--team=backend` analyses.
+In this case:
+- `pairstair` (no flags) analyzes Alice and Bob only
+- `pairstair --team=frontend` analyzes Bob and Carol
+- `pairstair --team=backend` analyzes Bob and Dave
+- Bob appears in all analyses, but Carol and Dave only appear in their respective sub-teams
 
 If a developer has commits from different email addresses, they will be treated as the same person when calculating the pairing matrix.
 

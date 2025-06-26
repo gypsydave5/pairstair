@@ -670,3 +670,63 @@ Dave Backend <dave@example.com>
 		t.Error("Expected Bob NOT to be in main team (should be in sub-teams only)")
 	}
 }
+
+func TestMainTeamWithDuplicatesInSubTeams(t *testing.T) {
+	content := `Alice Main <alice@example.com>
+Bob BothMainAndSub <bob@example.com>
+
+[frontend]
+Bob BothMainAndSub <bob@example.com>
+Carol SubTeamOnly <carol@example.com>
+
+[backend]  
+Bob BothMainAndSub <bob@example.com>
+Carol SubTeamOnly <carol@example.com>
+Dave SubTeamOnly <dave@example.com>
+`
+
+	tempDir := t.TempDir()
+	teamFile := filepath.Join(tempDir, ".team")
+	err := ioutil.WriteFile(teamFile, []byte(content), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+
+	// Test main team (no sub-team specified)
+	mainTeam, err := NewTeamFromFile(teamFile, "")
+	if err != nil {
+		t.Fatalf("Failed to create main team: %v", err)
+	}
+
+	// Alice should be in main team (only listed in main)
+	if !mainTeam.HasDeveloperByEmail("alice@example.com") {
+		t.Error("Expected Alice to be in main team")
+	}
+
+	// Bob should be in main team (listed in both main and sub-teams)
+	if !mainTeam.HasDeveloperByEmail("bob@example.com") {
+		t.Error("Expected Bob to be in main team")
+	}
+
+	// Carol should NOT be in main team (only listed in sub-teams)
+	if mainTeam.HasDeveloperByEmail("carol@example.com") {
+		t.Error("Expected Carol NOT to be in main team (only in sub-teams)")
+	}
+
+	// Dave should NOT be in main team (only listed in sub-teams)
+	if mainTeam.HasDeveloperByEmail("dave@example.com") {
+		t.Error("Expected Dave NOT to be in main team (only in sub-teams)")
+	}
+
+	// Verify Bob appears only once (no duplication despite being in multiple sub-teams)
+	emailToName, _ := mainTeam.GetEmailMappings()
+	bobCount := 0
+	for email := range emailToName {
+		if email == "bob@example.com" {
+			bobCount++
+		}
+	}
+	if bobCount != 1 {
+		t.Errorf("Expected Bob to appear exactly once in main team, got %d times", bobCount)
+	}
+}
