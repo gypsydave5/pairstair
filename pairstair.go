@@ -56,11 +56,7 @@ func main() {
 
 	matrix, pairRecency, devs, shortLabels, emailToName := BuildPairMatrix(team, commits, useTeam)
 
-	if config.Output == "html" {
-		err := RenderHTMLAndOpen(matrix, devs, shortLabels, emailToName)
-		exitOnError(err, "Error rendering HTML")
-	} else {
-		PrintMatrixCLI(matrix, devs, shortLabels, emailToName)
-		PrintRecommendationsCLI(matrix, pairRecency, devs, shortLabels, config.Strategy)
-	}
+	renderer := NewRenderer(config.Output)
+	err = renderer.Render(matrix, pairRecency, devs, shortLabels, emailToName, config.Strategy)
+	exitOnError(err, "Error rendering output")
 }
