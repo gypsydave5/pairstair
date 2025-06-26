@@ -24,8 +24,8 @@ func (t Team) GetEmailMappings() (map[string]string, map[string]string) {
 	return t.emailToName, t.emailToPrimaryEmail
 }
 
-func NewTeamFromFile(filename string) (Team, error) {
-	team, err := readTeamFile(filename)
+func NewTeamFromFile(filename string, subTeam string) (Team, error) {
+	team, err := readTeamFile(filename, subTeam)
 	if err != nil {
 		return Team{}, err
 	}
@@ -61,19 +61,41 @@ func NewTeam(team []string) (Team, error) {
 	}, nil
 }
 
-func readTeamFile(filename string) ([]string, error) {
+func readTeamFile(filename string, subTeam string) ([]string, error) {
 	f, err := os.Open(filename)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
+	
 	var team []string
+	var currentSection string
+	var inTargetSection bool
+	
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		if line != "" {
+		if line == "" {
+			continue
+		}
+		
+		// Check if this is a section header [section_name]
+		if strings.HasPrefix(line, "[") && strings.HasSuffix(line, "]") {
+			currentSection = strings.Trim(line, "[]")
+			inTargetSection = (subTeam == "" || currentSection == subTeam)
+			continue
+		}
+		
+		// If no sub-team specified, include all lines not in sections
+		// If sub-team specified, only include lines from that section
+		if subTeam == "" {
+			if currentSection == "" {
+				team = append(team, line)
+			}
+		} else if inTargetSection {
 			team = append(team, line)
 		}
 	}
+	
 	return team, scanner.Err()
 }

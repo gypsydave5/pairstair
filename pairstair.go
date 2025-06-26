@@ -11,6 +11,7 @@ func main() {
 	window := flag.String("window", "1w", "Time window to examine (e.g. 1d, 2w, 3m, 1y)")
 	output := flag.String("output", "cli", "Output format: 'cli' (default) or 'html'")
 	strategy := flag.String("strategy", "least-paired", "Recommendation strategy: 'least-paired' (default) or 'least-recent'")
+	teamFlag := flag.String("team", "", "Sub-team to analyze (e.g. 'frontend', 'backend')")
 	flag.Parse()
 
 	wd, err := os.Getwd()
@@ -20,7 +21,7 @@ func main() {
 	}
 
 	teamPath := filepath.Join(wd, ".team")
-	team, err := NewTeamFromFile(teamPath)
+	team, err := NewTeamFromFile(teamPath, *teamFlag)
 	useTeam := true
 	if err != nil {
 		if os.IsNotExist(err) {

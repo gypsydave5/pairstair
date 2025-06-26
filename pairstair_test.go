@@ -1,6 +1,8 @@
 package main
 
 import (
+	"io/ioutil"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -484,5 +486,125 @@ func TestLeastRecentStrategy(t *testing.T) {
 		if firstRec.DaysSince <= 0 {
 			t.Error("expected first recommendation to have positive days since or be never paired")
 		}
+	}
+}
+
+func TestReadTeamFileWithSubTeams(t *testing.T) {
+	// Create a temporary file with sub-team sections
+	content := `Alice Example <alice@example.com>
+Bob Dev <bob@example.com>
+
+[frontend]
+Carol Frontend <carol@example.com>
+Dave UI <dave@example.com>
+
+[backend]
+Eve Backend <eve@example.com>
+Frank API <frank@example.com>
+
+[devops]
+Grace Ops <grace@example.com>
+`
+
+	tempDir := t.TempDir()
+	teamFile := filepath.Join(tempDir, ".team")
+	err := ioutil.WriteFile(teamFile, []byte(content), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+
+	// Test reading entire team (no sub-team specified)
+	team, err := readTeamFile(teamFile, "")
+	if err != nil {
+		t.Fatalf("Failed to read team file: %v", err)
+	}
+	expected := []string{"Alice Example <alice@example.com>", "Bob Dev <bob@example.com>"}
+	if len(team) != len(expected) {
+		t.Fatalf("Expected %d members, got %d", len(expected), len(team))
+	}
+	for i, member := range expected {
+		if team[i] != member {
+			t.Errorf("Expected member %q, got %q", member, team[i])
+		}
+	}
+
+	// Test reading frontend sub-team
+	frontendTeam, err := readTeamFile(teamFile, "frontend")
+	if err != nil {
+		t.Fatalf("Failed to read frontend team: %v", err)
+	}
+	expectedFrontend := []string{"Carol Frontend <carol@example.com>", "Dave UI <dave@example.com>"}
+	if len(frontendTeam) != len(expectedFrontend) {
+		t.Fatalf("Expected %d frontend members, got %d", len(expectedFrontend), len(frontendTeam))
+	}
+	for i, member := range expectedFrontend {
+		if frontendTeam[i] != member {
+			t.Errorf("Expected frontend member %q, got %q", member, frontendTeam[i])
+		}
+	}
+
+	// Test reading backend sub-team
+	backendTeam, err := readTeamFile(teamFile, "backend")
+	if err != nil {
+		t.Fatalf("Failed to read backend team: %v", err)
+	}
+	expectedBackend := []string{"Eve Backend <eve@example.com>", "Frank API <frank@example.com>"}
+	if len(backendTeam) != len(expectedBackend) {
+		t.Fatalf("Expected %d backend members, got %d", len(expectedBackend), len(backendTeam))
+	}
+	for i, member := range expectedBackend {
+		if backendTeam[i] != member {
+			t.Errorf("Expected backend member %q, got %q", member, backendTeam[i])
+		}
+	}
+
+	// Test reading non-existent sub-team
+	nonExistentTeam, err := readTeamFile(teamFile, "nonexistent")
+	if err != nil {
+		t.Fatalf("Failed to read team file: %v", err)
+	}
+	if len(nonExistentTeam) != 0 {
+		t.Errorf("Expected empty team for non-existent sub-team, got %d members", len(nonExistentTeam))
+	}
+}
+
+func TestNewTeamFromFileWithSubTeam(t *testing.T) {
+	content := `Alice Example <alice@example.com>
+Bob Dev <bob@example.com>
+
+[frontend]
+Carol Frontend <carol@example.com>
+Dave UI <dave@example.com>
+
+[backend]
+Eve Backend <eve@example.com>
+Frank API <frank@example.com>
+`
+
+	tempDir := t.TempDir()
+	teamFile := filepath.Join(tempDir, ".team")
+	err := ioutil.WriteFile(teamFile, []byte(content), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+
+	// Test creating team from frontend sub-team
+	team, err := NewTeamFromFile(teamFile, "frontend")
+	if err != nil {
+		t.Fatalf("Failed to create team from file: %v", err)
+	}
+
+	// Verify that only frontend developers are included
+	if !team.HasDeveloperByEmail("carol@example.com") {
+		t.Error("Expected Carol to be in frontend team")
+	}
+	if !team.HasDeveloperByEmail("dave@example.com") {
+		t.Error("Expected Dave to be in frontend team")
+	}
+	if team.HasDeveloperByEmail("eve@example.com") {
+		t.Error("Expected Eve NOT to be in frontend team")
+	}
+	if team.HasDeveloperByEmail("alice@example.com") {
+		t.Error("Expected Alice NOT to be in frontend team")
 	}
 }

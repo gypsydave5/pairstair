@@ -74,11 +74,23 @@ Example:
 pairstair -strategy least-recent
 ```
 
+#### `-team <team>`: Specify a sub-team to analyze.
+
+When your `.team` file contains sub-teams (see below), you can analyze just a specific sub-team instead of the entire team.
+
+Example:
+
+```sh
+pairstair -team frontend
+```
+
 ### The `.team` File
 
 If you want to restrict the analysis to a specific team, create a `.team` file in your repository root. Each line should contain a developer's display name followed by their email address(es) in angle brackets.
 
 **Multiple email addresses**: You can specify multiple email addresses for the same developer by separating them with commas (`,`) and enclosing each in angle brackets (`<>`).
+
+#### Basic Team File
 
 Example `.team`:
 
@@ -87,6 +99,34 @@ Alice Example <alice@example.com>,<alice@gmail.com>
 Bob Dev <bob@example.com>
 Carol Tester <carol@example.com>,<carol@personal.com>,<carol@old-company.com>
 ```
+
+#### Sub-teams
+
+You can organize your team into sub-teams using section headers in square brackets. When no `--team` flag is specified, only team members not in any sub-team section are analyzed.
+
+Example `.team` with sub-teams:
+
+```
+Alice Lead <alice@example.com>
+Bob Manager <bob@example.com>
+
+[frontend]
+Carol Frontend <carol@example.com>
+Dave UI <dave@example.com>
+
+[backend]
+Eve Backend <eve@example.com>
+Frank API <frank@example.com>
+
+[devops]
+Grace Ops <grace@example.com>
+```
+
+In this example:
+- `pairstair` (no flags) analyzes Alice and Bob
+- `pairstair --team=frontend` analyzes Carol and Dave
+- `pairstair --team=backend` analyzes Eve and Frank
+- `pairstair --team=devops` analyzes Grace only
 
 If a developer has commits from different email addresses, they will be treated as the same person when calculating the pairing matrix.
 
