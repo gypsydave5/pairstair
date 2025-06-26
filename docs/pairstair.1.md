@@ -6,7 +6,7 @@ pairstair - visualize and optimize software developer pairing from git history
 
 # SYNOPSIS
 
-**pairstair** [**-window** _window_] [**-output** _format_]
+**pairstair** [**-window** _window_] [**-output** _format_] [**-strategy** _strategy_] [**-team** _team_]
 
 # DESCRIPTION
 
@@ -22,6 +22,12 @@ The tool scans commits in the specified time window, finds the author and any co
 **-output** _format_  
 :   Output format. Options: `cli` (default, prints to terminal), `html` (opens results in browser).
 
+**-strategy** _strategy_  
+:   Pairing recommendation strategy. Options: `least-paired` (default, recommends pairs who have worked together the fewest times), `least-recent` (recommends pairs who haven't worked together for the longest time).
+
+**-team** _team_  
+:   Specify a sub-team to analyze. When your `.team` file contains sub-teams (see below), analyze only that specific sub-team instead of the entire team.
+
 # TEAM FILE
 
 If a `.team` file is present in the working directory, only developers listed are included in the analysis. Each line should contain a developer's display name followed by their email address(es) in angle brackets. For developers who use multiple email addresses, separate them with commas and enclose each in angle brackets:
@@ -31,6 +37,25 @@ If a `.team` file is present in the working directory, only developers listed ar
     Carol Tester <carol@example.com>,<carol@personal.com>
 
 When multiple email addresses are specified for one developer, commits from any of those addresses will be attributed to the same person. This helps create an accurate pairing matrix even when developers use different email addresses.
+
+## Sub-teams
+
+You can organize your team into sub-teams using section headers in square brackets. When no `--team` flag is specified, only team members not in any sub-team section are analyzed:
+
+    Alice Lead <alice@example.com>
+    Bob Manager <bob@example.com>
+    
+    [frontend]
+    Carol Frontend <carol@example.com>
+    Dave UI <dave@example.com>
+    
+    [backend]
+    Eve Backend <eve@example.com>
+    Frank API <frank@example.com>
+
+In this example, `pairstair` analyzes Alice and Bob, `pairstair --team=frontend` analyzes Carol and Dave, and `pairstair --team=backend` analyzes Eve and Frank.
+
+If a developer needs to be in multiple sub-teams, duplicate their entry in each relevant section.
 
 If no `.team` file exists, all authors from the git history are included.
 
@@ -43,6 +68,18 @@ Analyze the last 4 weeks and show results in the terminal:
 Show results as HTML in your browser:
 
     pairstair -output html
+
+Analyze only the frontend sub-team:
+
+    pairstair -team frontend
+
+Use least-recent strategy for recommendations:
+
+    pairstair -strategy least-recent
+
+Combine options to analyze backend team for the last month using least-recent strategy:
+
+    pairstair -window 1m -team backend -strategy least-recent
 
 # AUTHORS
 
