@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 )
 
 type Pair struct {
@@ -14,8 +15,16 @@ type Matrix struct {
 	data map[Pair]int
 }
 
+type RecencyMatrix struct {
+	data map[Pair]time.Time
+}
+
 func NewMatrix() *Matrix {
 	return &Matrix{data: make(map[Pair]int)}
+}
+
+func NewRecencyMatrix() *RecencyMatrix {
+	return &RecencyMatrix{data: make(map[Pair]time.Time)}
 }
 
 // Count returns the count of times a pair has worked together
@@ -32,13 +41,28 @@ func (m *Matrix) Count(a, b string) int {
 	return m.data[Pair{A: a, B: b}]
 }
 
+// LastPaired returns the last time a pair worked together
+func (r *RecencyMatrix) LastPaired(a, b string) (time.Time, bool) {
+	if a == b {
+		return time.Time{}, false // Self-pairs don't have a last paired date
+	}
+
+	// Ensure consistent ordering
+	if a > b {
+		a, b = b, a
+	}
+
+	lastTime, exists := r.data[Pair{A: a, B: b}]
+	return lastTime, exists
+}
+
 // Len returns the number of pairs in the matrix
 func (m *Matrix) Len() int {
 	return len(m.data)
 }
 
 // BuildPairMatrix constructs a pair matrix from the commits and team data
-func BuildPairMatrix(team Team, commits []Commit, useTeam bool) (*Matrix, []string, map[string]string, map[string]string) {
+func BuildPairMatrix(team Team, commits []Commit, useTeam bool) (*Matrix, *RecencyMatrix, []string, map[string]string, map[string]string) {
 	// Maps to track emails and names
 	emailToName := make(map[string]string)
 	emailToPrimaryEmail := make(map[string]string)
@@ -72,6 +96,7 @@ func BuildPairMatrix(team Team, commits []Commit, useTeam bool) (*Matrix, []stri
 			devsInCommit = append([]Developer{c.Author}, filteredCoAuthors...)
 		} else {
 			devsInCommit = append([]Developer{c.Author}, c.CoAuthors...)
+
 			for _, d := range devsInCommit {
 				email := d.CanonicalEmail()
 				if _, ok := emailToName[email]; !ok {
@@ -155,18 +180,32 @@ func BuildPairMatrix(team Team, commits []Commit, useTeam bool) (*Matrix, []stri
 
 	shortLabels := makeShortLabelsWithNames(devs, emailToName)
 
-	// Build final matrix
+	// Build final matrix and recency matrix
 	matrix := NewMatrix()
-	for _, pairs := range datePairs {
+	recencyMatrix := NewRecencyMatrix()
+	
+	// Sort dates to process in chronological order
+	var sortedDates []string
+	for date := range datePairs {
+		sortedDates = append(sortedDates, date)
+	}
+	sort.Strings(sortedDates)
+	
+	for _, date := range sortedDates {
+		pairs := datePairs[date]
 		seen := make(map[Pair]struct{})
 		for p := range pairs {
 			if _, ok := seen[p]; !ok {
 				matrix.data[p]++
+				// Parse the date and update recency
+				if commitDate, err := time.Parse("2006-01-02", date); err == nil {
+					recencyMatrix.data[p] = commitDate
+				}
 				seen[p] = struct{}{}
 			}
 		}
 	}
-	return matrix, devs, shortLabels, emailToName
+	return matrix, recencyMatrix, devs, shortLabels, emailToName
 }
 
 // Build short labels for each developer, prefer name if available

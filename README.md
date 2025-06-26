@@ -62,6 +62,18 @@ Options:
   - `cli` (default): Prints the pairing matrix on the command line.
   - `html`: Outputs the pairing data in HTML and opens it in a web browser.
 
+#### `-strategy <strategy>`: Set the pairing recommendation strategy.
+
+Options:
+  - `least-paired` (default): Recommends pairs who have worked together the fewest times, using optimal matching to minimize total pair count.
+  - `least-recent`: Recommends pairs who haven't worked together for the longest time, prioritizing pairs who have never collaborated.
+
+Example:
+
+```sh
+pairstair -strategy least-recent
+```
+
 ### The `.team` File
 
 If you want to restrict the analysis to a specific team, create a `.team` file in your repository root. Each line should contain a developer's display name followed by their email address(es) in angle brackets.
@@ -91,6 +103,8 @@ If `.team` is not present, PairStair will use all authors found in the git histo
 
 ## Example Output
 
+### Default Strategy (least-paired)
+
 ```
 Legend:
   AE     = Alice Example        alice@example.com
@@ -102,8 +116,30 @@ AE      -       2       1
 BD      2       -       0
 CT      1       0       -
 
-Pairing Recommendations (least-paired first):
+Pairing Recommendations (least-paired overall, optimal matching):
   BD     <-> CT     : 0 times
+```
+
+### Least-Recent Strategy
+
+```sh
+pairstair -strategy least-recent
+```
+
+```
+Legend:
+  AE     = Alice Example        alice@example.com
+  BD     = Bob Dev              bob@example.com
+  CT     = Carol Tester         carol@example.com
+
+        AE      BD      CT
+AE      -       2       1
+BD      2       -       0
+CT      1       0       -
+
+Pairing Recommendations (least recent collaborations first):
+  BD     <-> CT     : never paired
+  AE     <-> CT     : last paired 15 days ago
 ```
 
 ## License

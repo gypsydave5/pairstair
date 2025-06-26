@@ -51,7 +51,7 @@ func TestMatrixLogic(t *testing.T) {
 	}
 
 	emptyTeam, _ := NewTeam([]string{})
-	matrix, _, _, _ := BuildPairMatrix(emptyTeam, commits, false)
+	matrix, _, _, _, _ := BuildPairMatrix(emptyTeam, commits, false)
 
 	// Alice/Bob should have 1 (same day, only count once)
 	a, b := "alice@example.com", "bob@example.com"
@@ -86,7 +86,7 @@ func TestMultipleEmailsInTeamFile(t *testing.T) {
 		},
 	}
 
-	matrix, devs, _, _ := BuildPairMatrix(team, commits, true)
+	matrix, _, devs, _, _ := BuildPairMatrix(team, commits, true)
 
 	// We should only have 2 developers (Alice and Bob), not 3
 	if len(devs) != 2 {
@@ -132,7 +132,7 @@ func TestTeamFileCanonicalName(t *testing.T) {
 	}
 
 	// Build the matrix with useTeam=true
-	_, _, _, emailToName := BuildPairMatrix(team, commits, true)
+	_, _, _, _, emailToName := BuildPairMatrix(team, commits, true)
 
 	// Check that Alice's name is the canonical one from the team file
 	aliceEmail := "alice@example.com"
@@ -161,7 +161,7 @@ func TestMultipleAuthorsInCommit(t *testing.T) {
 	}
 
 	emptyTeam, _ := NewTeam([]string{})
-	matrix, _, _, _ := BuildPairMatrix(emptyTeam, commits, false)
+	matrix, _, _, _, _ := BuildPairMatrix(emptyTeam, commits, false)
 
 	// With 3 authors, we should have 3 pairs: (Alice, Bob), (Alice, Carol), (Bob, Carol)
 	if matrix.Len() != 3 {
@@ -308,7 +308,7 @@ func TestComprehensivePairMatrix(t *testing.T) {
 	}
 
 	// Test with team information
-	matrix, devs, shortLabels, emailToName := BuildPairMatrix(team, commits, true)
+	matrix, _, devs, shortLabels, emailToName := BuildPairMatrix(team, commits, true)
 
 	// Check number of developers
 	if len(devs) != 6 {
@@ -375,7 +375,7 @@ func TestComprehensivePairMatrix(t *testing.T) {
 	}
 
 	// Now test without team information
-	matrixNoTeam, devsNoTeam, shortLabelsNoTeam, emailToNameNoTeam := BuildPairMatrix(Team{}, commits, false)
+	matrixNoTeam, _, devsNoTeam, shortLabelsNoTeam, emailToNameNoTeam := BuildPairMatrix(Team{}, commits, false)
 
 	// We expect more developers here because without team info, we don't consolidate alternate emails
 	expectedNonTeamDevsCount := 12 // All unique email addresses appear as separate developers
@@ -403,12 +403,86 @@ func TestComprehensivePairMatrix(t *testing.T) {
 	} else {
 		t.Error("external email not found in no-team developers list")
 	}
-
+	
 	// Verify the Alice-External pair exists in the no-team matrix
 	if externalEmail != "" {
 		aliceEmail := "alice@example.com"
 		if matrixNoTeam.Count(aliceEmail, externalEmail) != 1 {
 			t.Errorf("expected Alice-External pair to have count 1 in no-team matrix")
+		}
+	}
+}
+
+func TestLeastRecentStrategy(t *testing.T) {
+	// Create commits with different dates
+	commits := []Commit{
+		{
+			Date:      time.Date(2024, 6, 1, 10, 0, 0, 0, time.UTC), // Most recent
+			Author:    NewDeveloper("Alice <alice@example.com>"),
+			CoAuthors: []Developer{NewDeveloper("Bob <bob@example.com>")},
+		},
+		{
+			Date:      time.Date(2024, 5, 15, 10, 0, 0, 0, time.UTC), // Less recent
+			Author:    NewDeveloper("Alice <alice@example.com>"),
+			CoAuthors: []Developer{NewDeveloper("Carol <carol@example.com>")},
+		},
+		{
+			Date:      time.Date(2024, 5, 10, 10, 0, 0, 0, time.UTC), // Least recent
+			Author:    NewDeveloper("Bob <bob@example.com>"),
+			CoAuthors: []Developer{NewDeveloper("Dave <dave@example.com>")},
+		},
+	}
+
+	emptyTeam, _ := NewTeam([]string{})
+	matrix, recencyMatrix, devs, _, _ := BuildPairMatrix(emptyTeam, commits, false)
+
+	// Test recency tracking
+	aliceEmail := "alice@example.com"
+	bobEmail := "bob@example.com"
+	carolEmail := "carol@example.com"
+
+	// Check that recency data is correct
+	lastPairedAB, hasDataAB := recencyMatrix.LastPaired(aliceEmail, bobEmail)
+	if !hasDataAB {
+		t.Error("expected Alice-Bob to have recency data")
+	}
+	expectedDateAB := time.Date(2024, 6, 1, 0, 0, 0, 0, time.UTC)
+	if !lastPairedAB.Equal(expectedDateAB) {
+		t.Errorf("expected Alice-Bob last paired on %v, got %v", expectedDateAB, lastPairedAB)
+	}
+
+	lastPairedAC, hasDataAC := recencyMatrix.LastPaired(aliceEmail, carolEmail)
+	if !hasDataAC {
+		t.Error("expected Alice-Carol to have recency data")
+	}
+	expectedDateAC := time.Date(2024, 5, 15, 0, 0, 0, 0, time.UTC)
+	if !lastPairedAC.Equal(expectedDateAC) {
+		t.Errorf("expected Alice-Carol last paired on %v, got %v", expectedDateAC, lastPairedAC)
+	}
+
+	// Test recommendations using least-recent strategy
+	recommendations := recommendPairsLeastRecent(devs, matrix, recencyMatrix)
+
+	// Should recommend pairs that haven't worked together or worked together longest ago
+	if len(recommendations) < 2 {
+		t.Errorf("expected at least 2 recommendations, got %d", len(recommendations))
+	}
+
+	// First recommendation should be for pairs that never worked together
+	// or the least recently paired
+	foundNeverPaired := false
+	for _, rec := range recommendations {
+		if !rec.HasPaired {
+			foundNeverPaired = true
+			break
+		}
+	}
+
+	if !foundNeverPaired {
+		// If all pairs have worked together, check that least recent is first
+		firstRec := recommendations[0]
+		if firstRec.DaysSince <= 0 {
+			t.Error("expected first recommendation to have positive days since or be never paired")
 		}
 	}
 }

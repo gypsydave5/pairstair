@@ -35,22 +35,44 @@ func PrintMatrixCLI(matrix *Matrix, devs []string, shortLabels map[string]string
 }
 
 // Print recommendations to the CLI
-func PrintRecommendationsCLI(matrix *Matrix, devs []string, shortLabels map[string]string) {
+func PrintRecommendationsCLI(matrix *Matrix, recencyMatrix *RecencyMatrix, devs []string, shortLabels map[string]string, strategy string) {
 	fmt.Println()
 	if len(devs) > 10 {
 		fmt.Println("Skipping pairing recommendations - too many developers (> 10)")
 		return
 	}
 
-	fmt.Println("Pairing Recommendations (least-paired overall, optimal matching):")
-	recommendations := recommendPairsOptimal(devs, matrix)
+	var recommendations []Recommendation
+	switch strategy {
+	case "least-recent":
+		fmt.Println("Pairing Recommendations (least recent collaborations first):")
+		recommendations = recommendPairsLeastRecent(devs, matrix, recencyMatrix)
+	default: // least-paired
+		fmt.Println("Pairing Recommendations (least-paired overall, optimal matching):")
+		recommendations = recommendPairsOptimal(devs, matrix)
+	}
+	
 	for _, rec := range recommendations {
 		labelA := shortLabels[rec.A]
 		labelB := shortLabels[rec.B]
 		if rec.B == "" {
 			fmt.Printf("  %-6s (unpaired)\n", labelA)
 		} else {
-			fmt.Printf("  %-6s <-> %-6s : %d times\n", labelA, labelB, rec.Count)
+			if strategy == "least-recent" {
+				if rec.HasPaired {
+					if rec.DaysSince == 0 {
+						fmt.Printf("  %-6s <-> %-6s : last paired today\n", labelA, labelB)
+					} else if rec.DaysSince == 1 {
+						fmt.Printf("  %-6s <-> %-6s : last paired 1 day ago\n", labelA, labelB)
+					} else {
+						fmt.Printf("  %-6s <-> %-6s : last paired %d days ago\n", labelA, labelB, rec.DaysSince)
+					}
+				} else {
+					fmt.Printf("  %-6s <-> %-6s : never paired\n", labelA, labelB)
+				}
+			} else {
+				fmt.Printf("  %-6s <-> %-6s : %d times\n", labelA, labelB, rec.Count)
+			}
 		}
 	}
 }

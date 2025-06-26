@@ -10,6 +10,7 @@ import (
 func main() {
 	window := flag.String("window", "1w", "Time window to examine (e.g. 1d, 2w, 3m, 1y)")
 	output := flag.String("output", "cli", "Output format: 'cli' (default) or 'html'")
+	strategy := flag.String("strategy", "least-paired", "Recommendation strategy: 'least-paired' (default) or 'least-recent'")
 	flag.Parse()
 
 	wd, err := os.Getwd()
@@ -17,6 +18,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error getting working directory: %v\n", err)
 		os.Exit(1)
 	}
+
 	teamPath := filepath.Join(wd, ".team")
 	team, err := NewTeamFromFile(teamPath)
 	useTeam := true
@@ -35,7 +37,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	matrix, devs, shortLabels, emailToName := BuildPairMatrix(team, commits, useTeam)
+	matrix, pairRecency, devs, shortLabels, emailToName := BuildPairMatrix(team, commits, useTeam)
 
 	if *output == "html" {
 		err := RenderHTMLAndOpen(matrix, devs, shortLabels, emailToName)
@@ -45,6 +47,6 @@ func main() {
 		}
 	} else {
 		PrintMatrixCLI(matrix, devs, shortLabels, emailToName)
-		PrintRecommendationsCLI(matrix, devs, shortLabels)
+		PrintRecommendationsCLI(matrix, pairRecency, devs, shortLabels, *strategy)
 	}
 }
