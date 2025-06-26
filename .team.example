@@ -1,0 +1,18 @@
+# Example .team file with sub-teams
+# Main team members (analyzed when no --team flag is used)
+Alice Lead <alice@example.com>
+Bob Manager <bob@example.com>
+
+[frontend]
+Carol Frontend <carol@example.com>
+Dave UI <dave@example.com>
+Emma React <emma@example.com>
+
+[backend]
+Eve Backend <eve@example.com>
+Frank API <frank@example.com>
+Grace Database <grace@example.com>
+
+[devops]
+Henry Infrastructure <henry@example.com>
+Iris CI/CD <iris@example.com>
