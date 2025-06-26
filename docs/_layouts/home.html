@@ -1,0 +1,91 @@
+---
+layout: default
+---
+
+<div class="home">
+  
+  {{ content }}
+
+  <div class="home-sections">
+    <div class="section-grid">
+      <div class="section-card">
+        <h3>🚀 Quick Start</h3>
+        <p>Get up and running with PairStair in minutes.</p>
+        <a href="{{ '/installation/' | relative_url }}" class="btn">Install Now</a>
+      </div>
+      
+      <div class="section-card">
+        <h3>📖 User Guide</h3>
+        <p>Complete guide to using all of PairStair's features.</p>
+        <a href="{{ '/guide/' | relative_url }}" class="btn">Read Guide</a>
+      </div>
+      
+      <div class="section-card">
+        <h3>💡 Examples</h3>
+        <p>Real-world scenarios and practical usage examples.</p>
+        <a href="{{ '/examples/' | relative_url }}" class="btn">View Examples</a>
+      </div>
+      
+      <div class="section-card">
+        <h3>✨ Features</h3>
+        <p>Current functionality and planned enhancements.</p>
+        <a href="{{ '/features/' | relative_url }}" class="btn">See Features</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<style>
+.home-sections {
+  margin: 3rem 0;
+}
+
+.section-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.section-card {
+  padding: 1.5rem;
+  border: 1px solid #e1e5e9;
+  border-radius: 8px;
+  text-align: center;
+  background: #f8f9fa;
+}
+
+.section-card h3 {
+  margin: 0 0 1rem 0;
+  color: #0366d6;
+}
+
+.section-card p {
+  margin: 0 0 1.5rem 0;
+  color: #586069;
+}
+
+.btn {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: #0366d6;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.btn:hover {
+  background: #0256cc;
+  color: white;
+  text-decoration: none;
+}
+
+@media (max-width: 600px) {
+  .section-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

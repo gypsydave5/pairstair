@@ -1,0 +1,71 @@
+title: PairStair
+description: Visualize and optimize software developer pairing from git history
+theme: minima
+url: "https://gypsydave5.github.io"
+baseurl: "/pairstair"
+
+# Build settings
+markdown: kramdown
+highlighter: rouge
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+  - jekyll-seo-tag
+
+# Navigation
+header_pages:
+  - installation.md
+  - guide.md
+  - examples.md
+  - features.md
+
+# Social links
+github_username: gypsydave5
+
+# SEO settings
+author: gypsydave5
+twitter:
+  username: gypsydave5
+  card: summary
+
+# Collections
+collections:
+  docs:
+    output: true
+    permalink: /:collection/:name/
+
+# Defaults
+defaults:
+  - scope:
+      path: ""
+      type: "pages"
+    values:
+      layout: "page"
+  - scope:
+      path: ""
+      type: "posts"
+    values:
+      layout: "post"
+
+# Kramdown settings
+kramdown:
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    block:
+      line_numbers: false
+
+# Exclude from build
+exclude:
+  - .sass-cache/
+  - .jekyll-cache/
+  - gemfiles/
+  - Gemfile
+  - Gemfile.lock
+  - node_modules/
+  - vendor/bundle/
+  - vendor/cache/
+  - vendor/gems/
+  - vendor/ruby/
+  - gen-man.sh
+  - "*.1"
+  - "*.1.md"
