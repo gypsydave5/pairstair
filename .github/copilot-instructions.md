@@ -114,6 +114,49 @@ Keep all documentation synchronized when adding features or making changes:
 
 Remember: Users rely on both README and man page documentation. Keep them comprehensive and in sync.
 
+### Documentation Accuracy and Verification
+
+**Always verify functionality exists before documenting it**
+
+When writing or updating documentation, follow these critical practices to ensure accuracy:
+
+1. **Verify before documenting**: Before documenting any feature, command-line flag, or functionality:
+   - Use `grep_search` or `semantic_search` to confirm the feature exists in the codebase
+   - Check actual implementation files (e.g., `pairstair.go`, `recommend.go`, `print.go`)
+   - Test the functionality locally if possible
+   - Never assume features exist based on "what should be there"
+
+2. **Cross-reference with implementation**: When documenting CLI options or strategies:
+   - Check the actual switch/case statements in the code
+   - Verify flag parsing logic in `pairstair.go`
+   - Confirm strategy implementations in `recommend.go`
+   - Match help text output with documented behavior
+
+3. **Test examples and commands**: Before including code examples:
+   - Verify commands actually work as documented
+   - Test all flag combinations shown in examples
+   - Ensure output samples match actual program output
+   - Remove or correct any examples that don't work
+
+4. **Distinguish planned vs. current features**: Clearly separate:
+   - **Current features**: What exists in the codebase right now
+   - **Planned features**: Future enhancements (document in `FEATURES.md` or "Planned Features" sections)
+   - Use appropriate language: "PairStair supports..." vs. "PairStair will support..."
+
+5. **When documenting new functionality**: After implementing a feature:
+   - Document the actual implementation, not the ideal design
+   - Include realistic examples with actual output
+   - Update all relevant documentation files (README, man page, Jekyll site)
+   - Test documentation examples against the implemented feature
+
+6. **Regular documentation audits**: Periodically verify that:
+   - All documented features still exist and work as described
+   - Examples produce the documented output
+   - No obsolete or incorrect information remains
+   - Version numbers and capabilities are current
+
+**Remember**: Documentation credibility depends on accuracy. Users trust that documented features actually work. Always verify before documenting.
+
 ### Git Repository Hygiene
 
 Maintain a clean repository by following these practices:
