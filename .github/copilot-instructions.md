@@ -80,6 +80,40 @@ Examples:
 
 This convention helps reviewers and maintainers quickly understand the impact and scope of changes.
 
+### Documentation Maintenance
+
+Keep all documentation synchronized when adding features or making changes:
+
+1. **When adding new CLI flags or features**:
+   - Update `README.md` with new flag documentation and examples
+   - Update `docs/pairstair.1.md` (man page source) with new options and examples
+   - Regenerate the man page by running `cd docs && ./gen-man.sh`
+   - Commit both the markdown source and generated man page
+
+2. **Documentation files to update**:
+   - `README.md`: Primary user documentation with examples and usage
+   - `docs/pairstair.1.md`: Man page source (markdown format)
+   - `docs/pairstair.1`: Generated man page (regenerate after editing source)
+   - `.team.example`: Example team file showing current format
+
+3. **Documentation standards**:
+   - Include comprehensive examples for new features
+   - Show flag combinations when applicable
+   - Explain behavior clearly, especially edge cases
+   - Update both basic and advanced usage examples
+
+4. **Testing documentation**:
+   - Verify examples work as documented
+   - Test man page generation with `cd docs && ./gen-man.sh`
+   - Ensure help output (`--help`) matches documented behavior
+
+5. **Release process**:
+   - Documentation updates warrant patch version bumps
+   - Use `-s-` prefix for documentation-only commits
+   - The CI/CD pipeline automatically generates man pages for releases
+
+Remember: Users rely on both README and man page documentation. Keep them comprehensive and in sync.
+
 ### Git Repository Hygiene
 
 Maintain a clean repository by following these practices:
