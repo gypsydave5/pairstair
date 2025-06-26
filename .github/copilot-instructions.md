@@ -79,3 +79,28 @@ Examples:
 ```
 
 This convention helps reviewers and maintainers quickly understand the impact and scope of changes.
+
+### Git Repository Hygiene
+
+Maintain a clean repository by following these practices:
+
+1. **Never commit binary files**: Go binaries, executables, and compiled artifacts should never be committed to version control
+   - The main binary (e.g., `pairstair`) should be listed in `.gitignore`
+   - Use `go build` to create binaries locally as needed
+   - If you notice a binary has been accidentally committed, immediately remove it with `git rm <binary>` and update `.gitignore`
+
+2. **Review staged changes before committing**: Always check `git status` and `git diff --staged` before committing
+   - Look for accidentally staged binary files, temporary files, or IDE artifacts
+   - Ensure only intended source code changes are included
+
+3. **Keep .gitignore comprehensive**: The `.gitignore` file should include:
+   - IDE files and directories (`.idea/`, `.vscode/`, etc.)
+   - Go binaries (the main executable name)
+   - Temporary files and build artifacts
+   - OS-specific files (`.DS_Store`, `Thumbs.db`, etc.)
+
+4. **Immediate correction**: If you notice binary files or other inappropriate content has been committed:
+   - Remove it immediately with `git rm <file>`
+   - Add appropriate entries to `.gitignore`
+   - Commit the cleanup with a `-s-` prefix message
+   - This prevents repository bloat and keeps the history clean

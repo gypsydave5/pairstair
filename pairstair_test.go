@@ -608,3 +608,65 @@ Frank API <frank@example.com>
 		t.Error("Expected Alice NOT to be in frontend team")
 	}
 }
+
+func TestDeveloperInMultipleSubTeams(t *testing.T) {
+	content := `Alice Lead <alice@example.com>
+
+[frontend]
+Bob Fullstack <bob@example.com>
+Carol Frontend <carol@example.com>
+
+[backend]
+Bob Fullstack <bob@example.com>
+Dave Backend <dave@example.com>
+`
+
+	tempDir := t.TempDir()
+	teamFile := filepath.Join(tempDir, ".team")
+	err := ioutil.WriteFile(teamFile, []byte(content), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+
+	// Test frontend team - should include Bob and Carol
+	frontendTeam, err := NewTeamFromFile(teamFile, "frontend")
+	if err != nil {
+		t.Fatalf("Failed to create frontend team: %v", err)
+	}
+	if !frontendTeam.HasDeveloperByEmail("bob@example.com") {
+		t.Error("Expected Bob to be in frontend team")
+	}
+	if !frontendTeam.HasDeveloperByEmail("carol@example.com") {
+		t.Error("Expected Carol to be in frontend team")
+	}
+	if frontendTeam.HasDeveloperByEmail("dave@example.com") {
+		t.Error("Expected Dave NOT to be in frontend team")
+	}
+
+	// Test backend team - should include Bob and Dave
+	backendTeam, err := NewTeamFromFile(teamFile, "backend")
+	if err != nil {
+		t.Fatalf("Failed to create backend team: %v", err)
+	}
+	if !backendTeam.HasDeveloperByEmail("bob@example.com") {
+		t.Error("Expected Bob to be in backend team")
+	}
+	if !backendTeam.HasDeveloperByEmail("dave@example.com") {
+		t.Error("Expected Dave to be in backend team")
+	}
+	if backendTeam.HasDeveloperByEmail("carol@example.com") {
+		t.Error("Expected Carol NOT to be in backend team")
+	}
+
+	// Test main team - should only include Alice
+	mainTeam, err := NewTeamFromFile(teamFile, "")
+	if err != nil {
+		t.Fatalf("Failed to create main team: %v", err)
+	}
+	if !mainTeam.HasDeveloperByEmail("alice@example.com") {
+		t.Error("Expected Alice to be in main team")
+	}
+	if mainTeam.HasDeveloperByEmail("bob@example.com") {
+		t.Error("Expected Bob NOT to be in main team (should be in sub-teams only)")
+	}
+}

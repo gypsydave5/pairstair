@@ -128,6 +128,20 @@ In this example:
 - `pairstair --team=backend` analyzes Eve and Frank
 - `pairstair --team=devops` analyzes Grace only
 
+**Multiple sub-teams**: If a developer needs to be in multiple sub-teams, you can duplicate their entry in each relevant section:
+
+```
+[frontend]
+Bob Fullstack <bob@example.com>
+Carol Frontend <carol@example.com>
+
+[backend]
+Bob Fullstack <bob@example.com>
+Dave Backend <dave@example.com>
+```
+
+In this case, Bob would appear in both `--team=frontend` and `--team=backend` analyses.
+
 If a developer has commits from different email addresses, they will be treated as the same person when calculating the pairing matrix.
 
 If `.team` is not present, PairStair will use all authors found in the git history.
