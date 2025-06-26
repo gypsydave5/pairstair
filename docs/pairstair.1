@@ -6,7 +6,8 @@ pairstair \- visualize and optimize software developer pairing from git
 history
 .SH SYNOPSIS
 \f[B]pairstair\f[R] [\f[B]\-window\f[R] \f[I]window\f[R]]
-[\f[B]\-output\f[R] \f[I]format\f[R]]
+[\f[B]\-output\f[R] \f[I]format\f[R]] [\f[B]\-strategy\f[R]
+\f[I]strategy\f[R]] [\f[B]\-team\f[R] \f[I]team\f[R]]
 .SH DESCRIPTION
 \f[B]pairstair\f[R] analyzes git commit history to show how often
 developers have paired (committed together) over a configurable time
@@ -27,10 +28,61 @@ Default: \f[CR]1w\f[R].
 Output format.
 Options: \f[CR]cli\f[R] (default, prints to terminal), \f[CR]html\f[R]
 (opens results in browser).
+.TP
+\f[B]\-strategy\f[R] \f[I]strategy\f[R]
+Pairing recommendation strategy.
+Options: \f[CR]least\-paired\f[R] (default, recommends pairs who have
+worked together the fewest times), \f[CR]least\-recent\f[R] (recommends
+pairs who haven\(cqt worked together for the longest time).
+.TP
+\f[B]\-team\f[R] \f[I]team\f[R]
+Specify a sub\-team to analyze.
+When your \f[CR].team\f[R] file contains sub\-teams (see below), analyze
+only that specific sub\-team instead of the entire team.
 .SH TEAM FILE
 If a \f[CR].team\f[R] file is present in the working directory, only
-developers listed (one per line, as \f[CR]Name <email>\f[R]) are
-included in the analysis.
+developers listed are included in the analysis.
+Each line should contain a developer\(cqs display name followed by their
+email address(es) in angle brackets.
+For developers who use multiple email addresses, separate them with
+commas and enclose each in angle brackets:
+.IP
+.EX
+Alice Example <alice\(atexample.com>,<alice\(atgmail.com>
+Bob Dev <bob\(atexample.com>
+Carol Tester <carol\(atexample.com>,<carol\(atpersonal.com>
+.EE
+.PP
+When multiple email addresses are specified for one developer, commits
+from any of those addresses will be attributed to the same person.
+This helps create an accurate pairing matrix even when developers use
+different email addresses.
+.SS Sub\-teams
+You can organize your team into sub\-teams using section headers in
+square brackets.
+When no \f[CR]\-\-team\f[R] flag is specified, only team members not in
+any sub\-team section are analyzed:
+.IP
+.EX
+Alice Lead <alice\(atexample.com>
+Bob Manager <bob\(atexample.com>
+
+[frontend]
+Carol Frontend <carol\(atexample.com>
+Dave UI <dave\(atexample.com>
+
+[backend]
+Eve Backend <eve\(atexample.com>
+Frank API <frank\(atexample.com>
+.EE
+.PP
+In this example, \f[CR]pairstair\f[R] analyzes Alice and Bob,
+\f[CR]pairstair \-\-team=frontend\f[R] analyzes Carol and Dave, and
+\f[CR]pairstair \-\-team=backend\f[R] analyzes Eve and Frank.
+.PP
+If a developer needs to be in multiple sub\-teams, duplicate their entry
+in each relevant section.
+.PP
 If no \f[CR].team\f[R] file exists, all authors from the git history are
 included.
 .SH EXAMPLES
@@ -44,6 +96,25 @@ Show results as HTML in your browser:
 .IP
 .EX
 pairstair \-output html
+.EE
+.PP
+Analyze only the frontend sub\-team:
+.IP
+.EX
+pairstair \-team frontend
+.EE
+.PP
+Use least\-recent strategy for recommendations:
+.IP
+.EX
+pairstair \-strategy least\-recent
+.EE
+.PP
+Combine options to analyze backend team for the last month using
+least\-recent strategy:
+.IP
+.EX
+pairstair \-window 1m \-team backend \-strategy least\-recent
 .EE
 .SH AUTHORS
 Written by gypsydave5.
