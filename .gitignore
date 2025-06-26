@@ -1,4 +1,7 @@
 .idea/
 
+# Examples and temporary files used during development
+examples/
+
 # Go binary
 pairstair
