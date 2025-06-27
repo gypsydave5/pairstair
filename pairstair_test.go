@@ -730,3 +730,74 @@ Dave SubTeamOnly <dave@example.com>
 		t.Errorf("Expected Bob to appear exactly once in main team, got %d times", bobCount)
 	}
 }
+
+func TestCoAuthorPairingDetection(t *testing.T) {
+	// This test verifies that PairStair correctly identifies pairing from a real commit scenario
+	// where the author email differs from the team file email but co-authored-by includes both devs
+	
+	// Create team with Ahmad and Tamara using specific emails
+	// Include both Tamara emails to match the real-world scenario where team files
+	// should list all email variations for each developer
+	team, err := NewTeam([]string{
+		"Ahmad Qurbanzada <ahmad.qurbanzada@springernature.com>",
+		"Tamara Jordan <20561445+tamj0rd2@users.noreply.github.com>,<tamara.jordan@springernature.com>",
+	})
+	if err != nil {
+		t.Fatalf("failed to create team: %v", err)
+	}
+
+	// Create a commit that matches the real scenario:
+	// - Author: Tamara with work email (not in team file)
+	// - Co-authored-by: Ahmad with work email (matches team file)  
+	// - Co-authored-by: Tamara with GitHub email (matches team file)
+	commits := []Commit{
+		{
+			Date:   time.Date(2025, 6, 26, 16, 33, 50, 0, time.UTC),
+			Author: NewDeveloper("Tamara Jordan <tamara.jordan@springernature.com>"),
+			CoAuthors: []Developer{
+				NewDeveloper("Ahmad Qurbanzada <ahmad.qurbanzada@springernature.com>"),
+				NewDeveloper("Tamara Jordan <20561445+tamj0rd2@users.noreply.github.com>"),
+			},
+		},
+	}
+
+	// Build pair matrix with team enabled
+	matrix, _, devs, _, _ := BuildPairMatrix(team, commits, true)
+
+	// Debug: print what we got
+	t.Logf("Developers found: %v", devs)
+	t.Logf("Matrix pairs: %d", matrix.Len())
+
+	// Should have exactly 2 developers in the final result
+	if len(devs) != 2 {
+		t.Errorf("expected 2 developers, got %d: %v", len(devs), devs)
+	}
+
+	// Should have exactly 1 pair (Ahmad and Tamara)
+	if matrix.Len() != 1 {
+		t.Errorf("expected 1 pair in matrix, got %d", matrix.Len())
+	}
+
+	// Find Ahmad and Tamara's emails in the result
+	var ahmadEmail, tamaraEmail string
+	for _, dev := range devs {
+		if strings.Contains(dev, "ahmad") {
+			ahmadEmail = dev
+		} else if strings.Contains(dev, "tamj0rd2") || strings.Contains(dev, "tamara") {
+			tamaraEmail = dev
+		}
+	}
+
+	if ahmadEmail == "" {
+		t.Fatalf("could not find Ahmad in developers list: %v", devs)
+	}
+	if tamaraEmail == "" {
+		t.Fatalf("could not find Tamara in developers list: %v", devs)
+	}
+
+	// Verify that Ahmad and Tamara are counted as having paired once
+	pairCount := matrix.Count(ahmadEmail, tamaraEmail)
+	if pairCount != 1 {
+		t.Errorf("expected Ahmad and Tamara to have paired 1 time, got %d", pairCount)
+	}
+}

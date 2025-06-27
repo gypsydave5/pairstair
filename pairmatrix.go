@@ -79,21 +79,29 @@ func BuildPairMatrix(team Team, commits []Commit, useTeam bool) (*Matrix, *Recen
 	for _, c := range commits {
 		var devsInCommit []Developer
 		if useTeam {
-			// Get author email and check if it's in the team
+			// When using team mode, include commits where any participant is a team member
+			var teamMembers []Developer
+			
+			// Check if author is in team
 			authorEmail := c.Author.CanonicalEmail()
-			if !team.HasDeveloperByEmail(authorEmail) {
-				continue // Skip commits from authors not in team
+			if team.HasDeveloperByEmail(authorEmail) {
+				teamMembers = append(teamMembers, c.Author)
 			}
 
 			// Filter co-authors to only include team members
-			filteredCoAuthors := make([]Developer, 0, len(c.CoAuthors))
 			for _, ca := range c.CoAuthors {
 				coAuthorEmail := ca.CanonicalEmail()
 				if team.HasDeveloperByEmail(coAuthorEmail) {
-					filteredCoAuthors = append(filteredCoAuthors, ca)
+					teamMembers = append(teamMembers, ca)
 				}
 			}
-			devsInCommit = append([]Developer{c.Author}, filteredCoAuthors...)
+			
+			// Skip commits where no participants are team members
+			if len(teamMembers) == 0 {
+				continue
+			}
+			
+			devsInCommit = teamMembers
 		} else {
 			devsInCommit = append([]Developer{c.Author}, c.CoAuthors...)
 
