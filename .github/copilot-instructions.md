@@ -162,6 +162,174 @@ When making changes to existing code, follow these critical practices:
    ensuring the production code is testable and focused."
    ```
 
+### Package Structure and Organization
+
+**Follow consistent patterns for creating well-organized, maintainable packages**
+
+When refactoring existing code or creating new functionality, use the established package structure pattern demonstrated by the `internal/update` package:
+
+#### Package Creation Guidelines
+
+1. **Use `internal/` for implementation packages**: All domain-specific packages should be placed under `internal/` to prevent external imports:
+   ```
+   internal/
+   ├── update/     # Update notification logic
+   ├── pairing/    # Pairing detection and analysis
+   ├── team/       # Team file parsing and management  
+   ├── git/        # Git log parsing and operations
+   └── version/    # Version detection and reporting
+   ```
+
+2. **Single responsibility per package**: Each package should have one clear purpose:
+   - `internal/update`: Check for new versions on GitHub
+   - `internal/pairing`: Parse git logs for pairing information
+   - `internal/team`: Handle team file operations
+   - `internal/git`: Git repository operations
+   - `internal/version`: Version detection from build info
+
+3. **Minimal public APIs**: Export only what's necessary for external use:
+   ```go
+   // ✅ Good: Clean public API
+   func CheckForUpdate(currentVersion string) string
+   func IsNewerVersion(current, latest string) bool
+   
+   // ❌ Avoid: Exposing implementation details
+   type release struct { ... } // Keep private
+   func parseGitHubResponse(...) // Internal helper
+   ```
+
+#### External Testing Pattern
+
+**Always use external testing for packages to ensure proper encapsulation**
+
+1. **Use `package name_test` pattern**: Test files should use external package naming:
+   ```go
+   // ✅ Correct external testing
+   package update_test
+   
+   import (
+       "testing"
+       "github.com/gypsydave5/pairstair/internal/update"
+   )
+   
+   // ❌ Avoid internal testing unless testing private functions
+   package update
+   ```
+
+2. **Test only public interfaces**: External tests can only access exported functions and types:
+   ```go
+   // ✅ Test public API
+   result := update.CheckForUpdate("v0.5.0")
+   newer := update.IsNewerVersion("v0.5.0", "v0.6.0")
+   
+   // ❌ Cannot access private types (compiler prevents this)
+   var r release // Error: undefined
+   ```
+
+3. **Use realistic test data**: Mock responses should use actual data formats:
+   ```go
+   // ✅ Use JSON strings for HTTP API responses
+   mockResponse: `[
+       {"tag_name": "v0.6.0", "draft": false},
+       {"tag_name": "v0.5.0", "draft": false}
+   ]`
+   
+   // ❌ Avoid exposing internal structs in tests
+   mockResponse: []update.Release{...} // Error if Release is private
+   ```
+
+#### Dependency Injection for Testability
+
+1. **Provide testable alternatives**: Export functions that accept dependencies for testing:
+   ```go
+   // ✅ Public function for production use
+   func CheckForUpdate(currentVersion string) string {
+       return CheckForUpdateWithURL(currentVersion, defaultURL)
+   }
+   
+   // ✅ Testable function that accepts URL dependency
+   func CheckForUpdateWithURL(currentVersion, url string) string {
+       // Implementation can be tested with mock servers
+   }
+   ```
+
+2. **Separate I/O from logic**: Keep business logic separate from external dependencies:
+   ```go
+   // ✅ Pure function for version comparison
+   func IsNewerVersion(current, latest string) bool {
+       // No I/O, easy to test
+   }
+   
+   // ✅ I/O function that uses pure functions
+   func CheckForUpdateWithURL(currentVersion, url string) string {
+       // HTTP call, then use IsNewerVersion for logic
+   }
+   ```
+
+#### Package Documentation and Examples
+
+1. **Document package purpose clearly**: Each package should have clear documentation:
+   ```go
+   // Package update provides functionality for checking if newer versions
+   // of the application are available on GitHub releases.
+   //
+   // The package performs silent HTTP requests to GitHub's API and compares
+   // semantic versions to determine if an update notification should be shown.
+   package update
+   ```
+
+2. **Provide usage examples**: Key functions should have examples:
+   ```go
+   // CheckForUpdate checks GitHub releases for a newer version.
+   // Returns an empty string if no update is available or on any error.
+   //
+   // Example:
+   //   message := CheckForUpdate("v0.5.0")
+   //   if message != "" {
+   //       fmt.Println(message)
+   //   }
+   func CheckForUpdate(currentVersion string) string
+   ```
+
+#### Refactoring Existing Code
+
+When moving existing functionality into packages:
+
+1. **Refactor incrementally**: Move one domain at a time, ensuring tests pass at each step
+2. **Maintain backward compatibility**: Existing APIs should continue to work during transition
+3. **Update imports systematically**: Use tools like `go mod tidy` and compiler errors to find all references
+4. **Test after each move**: Run full test suite after each package extraction
+
+#### Integration with Main Application
+
+1. **Keep main package thin**: The main `pairstair.go` should primarily handle:
+   - CLI flag parsing and validation
+   - Coordinating calls to domain packages  
+   - Output formatting and presentation
+   - Error handling and user feedback
+
+2. **Use packages for domain logic**: Move business logic into appropriate packages:
+   ```go
+   // ✅ Main handles CLI, packages handle logic
+   func main() {
+       // Parse flags...
+       updateMsg := update.CheckForUpdate(getVersion())
+       if updateMsg != "" {
+           fmt.Fprintf(os.Stderr, "%s\n", updateMsg)
+       }
+       
+       pairs := pairing.AnalyzeRepository(repoPath, timeWindow)
+       recommendation := pairing.RecommendPairs(pairs, strategy)
+       output.Print(recommendation, format)
+   }
+   ```
+
+This package structure and testing approach ensures:
+- **Clear separation of concerns** between different domains
+- **Testable code** through external testing and dependency injection  
+- **Maintainable APIs** with minimal surface area
+- **Reliable refactoring** through comprehensive test coverage
+
 ### Git Commit Message Conventions
 
 Use consistent prefixes for commit messages to indicate the type of change:
