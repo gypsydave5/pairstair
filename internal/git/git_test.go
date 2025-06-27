@@ -7,72 +7,46 @@ import (
 	"github.com/gypsydave5/pairstair/internal/git"
 )
 
-// Developer represents a developer extracted from git commits
-// This is a minimal version for testing - the real type is in developer.go
-type Developer struct {
-	DisplayName     string
-	EmailAddresses  []string
-	AbbreviatedName string
-}
-
-// NewDeveloper creates a developer from a "Name <email>" string
-func NewDeveloper(entry string) Developer {
-	// Simple implementation for testing
-	parts := strings.Split(entry, " <")
-	if len(parts) != 2 {
-		return Developer{}
-	}
-	
-	name := parts[0]
-	email := strings.TrimSuffix(parts[1], ">")
-	
-	return Developer{
-		DisplayName:     name,
-		EmailAddresses:  []string{strings.ToLower(email)},
-		AbbreviatedName: name, // Simplified for testing
-	}
-}
-
 func TestParseCoAuthors(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
-		expected []Developer
+		expected []git.Developer
 	}{
 		{
 			name:  "single co-author",
 			input: "Some commit message\n\nCo-authored-by: Alice Smith <alice@example.com>",
-			expected: []Developer{
-				NewDeveloper("Alice Smith <alice@example.com>"),
+			expected: []git.Developer{
+				git.NewDeveloper("Alice Smith <alice@example.com>"),
 			},
 		},
 		{
 			name:  "multiple co-authors",
 			input: "Some commit message\n\nCo-authored-by: Alice Smith <alice@example.com>\nCo-authored-by: Bob Jones <bob@example.com>",
-			expected: []Developer{
-				NewDeveloper("Alice Smith <alice@example.com>"),
-				NewDeveloper("Bob Jones <bob@example.com>"),
+			expected: []git.Developer{
+				git.NewDeveloper("Alice Smith <alice@example.com>"),
+				git.NewDeveloper("Bob Jones <bob@example.com>"),
 			},
 		},
 		{
 			name:     "no co-authors",
 			input:    "Some commit message with no co-authors",
-			expected: []Developer{},
+			expected: []git.Developer{},
 		},
 		{
 			name:  "co-authors with extra whitespace",
 			input: "Some commit message\n\nCo-authored-by:  Alice Smith   <alice@example.com>  \nCo-authored-by:\tBob Jones\t<bob@example.com>",
-			expected: []Developer{
-				NewDeveloper("Alice Smith <alice@example.com>"),
-				NewDeveloper("Bob Jones <bob@example.com>"),
+			expected: []git.Developer{
+				git.NewDeveloper("Alice Smith <alice@example.com>"),
+				git.NewDeveloper("Bob Jones <bob@example.com>"),
 			},
 		},
 		{
 			name:  "mixed content with co-authors",
 			input: "Fix bug in parser\n\nThis fixes the issue where the parser would fail.\n\nCo-authored-by: Alice Smith <alice@example.com>\nSome other text\nCo-authored-by: Bob Jones <bob@example.com>",
-			expected: []Developer{
-				NewDeveloper("Alice Smith <alice@example.com>"),
-				NewDeveloper("Bob Jones <bob@example.com>"),
+			expected: []git.Developer{
+				git.NewDeveloper("Alice Smith <alice@example.com>"),
+				git.NewDeveloper("Bob Jones <bob@example.com>"),
 			},
 		},
 	}

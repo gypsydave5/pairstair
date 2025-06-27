@@ -17,9 +17,8 @@ Some commit message
 Co-authored-by: Alice <alice@example.com>
 Co-authored-by: Bob <bob@example.com>
 `
-	// Use the git package function and convert to main package types
-	gitCoauthors := git.ParseCoAuthors(body)
-	coauthors := convertDevelopers(gitCoauthors)
+	// Use the git package function directly now that types are aliases
+	coauthors := git.ParseCoAuthors(body)
 	
 	if len(coauthors) != 2 {
 		t.Fatalf("expected 2 coauthors, got %d", len(coauthors))

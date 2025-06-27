@@ -31,6 +31,12 @@ func (d Developer) CanonicalEmail() string {
 	return d.EmailAddresses[0]
 }
 
+// NewDeveloper creates a Developer from a "Name <email>" string
+// This is the public constructor for Developer instances
+func NewDeveloper(entry string) Developer {
+	return newDeveloper(entry)
+}
+
 // Commit represents a git commit with author and co-author information
 type Commit struct {
 	Date      time.Time
@@ -150,7 +156,7 @@ func ValidateWindow(window string) error {
 // This is internal to the git package
 func newDeveloper(entry string) Developer {
 	name := extractName(entry)
-	emails := extractAllEmails(entry)
+	emails := ExtractAllEmails(entry)
 	
 	if len(emails) == 0 {
 		return Developer{}
@@ -171,8 +177,9 @@ func extractName(author string) string {
 	return strings.TrimSpace(author)
 }
 
-// extractAllEmails extracts all email addresses from the author string
-func extractAllEmails(author string) []string {
+// ExtractAllEmails extracts all email addresses from the author string
+// This function is exported for use by other packages
+func ExtractAllEmails(author string) []string {
 	var emails []string
 	
 	// Find all email parts between < and >
@@ -198,6 +205,21 @@ func extractAllEmails(author string) []string {
 
 // shortName creates an abbreviated name from a full name
 func shortName(name string) string {
-	// Simple implementation for now
-	return name
+	// Initials of all the words in a string
+	words := strings.Fields(name)
+	if len(words) == 0 {
+		return "NAN"
+	}
+
+	initials := make([]string, len(words))
+
+	for i, word := range words {
+		if len(word) > 0 {
+			initials[i] = strings.ToUpper(string(word[0]))
+		} else {
+			initials[i] = "."
+		}
+	}
+
+	return strings.Join(initials, "")
 }

@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/debug"
-	"time"
 
 	"github.com/gypsydave5/pairstair/internal/git"
 	"github.com/gypsydave5/pairstair/internal/update"
@@ -15,52 +14,12 @@ import (
 // Version is the fallback version, overridden by build info when available
 const Version = "0.5.0-dev"
 
-// Commit represents a git commit with author and co-author information
-// This uses the main package Developer type for compatibility with existing code
-type Commit struct {
-	Date      time.Time
-	Author    Developer
-	CoAuthors []Developer
-}
+// Use git package types as the canonical domain types
+type Commit = git.Commit
+type Developer = git.Developer
 
-// Conversion functions to bridge git package and main package types
-func convertCommit(gc git.Commit) Commit {
-	return Commit{
-		Date:      gc.Date,
-		Author:    convertDeveloper(gc.Author),
-		CoAuthors: convertDevelopers(gc.CoAuthors),
-	}
-}
-
-func convertDeveloper(gd git.Developer) Developer {
-	return Developer{
-		DisplayName:     gd.DisplayName,
-		EmailAddresses:  gd.EmailAddresses,
-		AbbreviatedName: gd.AbbreviatedName,
-	}
-}
-
-func convertDevelopers(gds []git.Developer) []Developer {
-	result := make([]Developer, len(gds))
-	for i, gd := range gds {
-		result[i] = convertDeveloper(gd)
-	}
-	return result
-}
-
-// getGitCommitsFromPackage wraps git.GetCommitsSince with type conversion
-func getGitCommitsFromPackage(window string) ([]Commit, error) {
-	gitCommits, err := git.GetCommitsSince(window)
-	if err != nil {
-		return nil, err
-	}
-
-	commits := make([]Commit, len(gitCommits))
-	for i, gc := range gitCommits {
-		commits[i] = convertCommit(gc)
-	}
-	return commits, nil
-}
+// NewDeveloper creates a Developer from git package - maintain compatibility
+var NewDeveloper = git.NewDeveloper
 
 // getVersion returns the version string, preferring build info over the constant
 func getVersion() string {
@@ -176,7 +135,7 @@ func main() {
 		}
 	}
 
-	commits, err := getGitCommitsFromPackage(config.Window)
+	commits, err := git.GetCommitsSince(config.Window)
 	exitOnError(err, "Error getting git commits")
 
 	matrix, pairRecency, devs, shortLabels, emailToName := BuildPairMatrix(team, commits, useTeam)

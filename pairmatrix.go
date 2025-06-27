@@ -5,6 +5,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/gypsydave5/pairstair/internal/git"
 )
 
 type Pair struct {
@@ -175,7 +177,7 @@ func BuildPairMatrix(team Team, commits []Commit, useTeam bool) (*Matrix, *Recen
 	// Add any team members not found in commits
 	if useTeam {
 		for _, tm := range team.team {
-			emails := extractAllEmails(tm)
+			emails := git.ExtractAllEmails(tm)
 			if len(emails) > 0 {
 				primaryEmail := emails[0]
 				if _, ok := devsSet[primaryEmail]; !ok {
