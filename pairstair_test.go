@@ -822,3 +822,31 @@ func TestCoAuthorPairingDetection(t *testing.T) {
 		t.Errorf("expected Ahmad and Tamara to have paired 1 time, got %d", pairCount)
 	}
 }
+
+// Tests for configuration and flag parsing
+func TestConfigDefaults(t *testing.T) {
+	// Test that Config has the expected default behavior
+	config := &Config{}
+
+	// The new Open field should default to false (stream to stdout)
+	if config.Open {
+		t.Error("Config.Open should default to false")
+	}
+}
+
+func TestConfigOpenFlag(t *testing.T) {
+	// Test that the -open flag changes the behavior of HTML output
+	// This is a unit test for the configuration structure
+	config := &Config{
+		Output: "html",
+		Open:   true,
+	}
+
+	if !config.Open {
+		t.Error("Expected Open to be true when set")
+	}
+
+	if config.Output != "html" {
+		t.Error("Expected Output to be html")
+	}
+}

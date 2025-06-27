@@ -55,6 +55,53 @@ func TestNewRenderer(t *testing.T) {
 	}
 }
 
+func TestNewRendererWithOpenFlag(t *testing.T) {
+	tests := []struct {
+		name             string
+		outputFormat     string
+		open             bool
+		expectedBehavior string
+	}{
+		{
+			name:             "CLI renderer ignores open flag",
+			outputFormat:     "cli",
+			open:             true,
+			expectedBehavior: "cli",
+		},
+		{
+			name:             "HTML renderer with open=false should stream",
+			outputFormat:     "html",
+			open:             false,
+			expectedBehavior: "stream",
+		},
+		{
+			name:             "HTML renderer with open=true should open browser",
+			outputFormat:     "html",
+			open:             true,
+			expectedBehavior: "open",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			renderer := output.NewRendererWithOpen(tt.outputFormat, tt.open)
+			if renderer == nil {
+				t.Fatal("Expected renderer, got nil")
+			}
+
+			// For now, just verify the renderer was created
+			// We'll add behavior verification in a future iteration
+			rendererType := getTypeName(renderer)
+			if tt.outputFormat == "cli" && !strings.Contains(rendererType, "CLI") {
+				t.Errorf("Expected CLI renderer for cli format, got %s", rendererType)
+			}
+			if tt.outputFormat == "html" && !strings.Contains(rendererType, "HTML") {
+				t.Errorf("Expected HTML renderer for html format, got %s", rendererType)
+			}
+		})
+	}
+}
+
 func TestPrintMatrixCLI(t *testing.T) {
 	// Create test data - just test with empty matrix
 	matrix := pairing.NewMatrix()

@@ -38,7 +38,9 @@ type OutputRenderer interface {
 type CLIRenderer struct{}
 
 // HTMLRenderer handles HTML output
-type HTMLRenderer struct{}
+type HTMLRenderer struct {
+	OpenInBrowser bool
+}
 
 // Render outputs the matrix and recommendations to the console
 func (r *CLIRenderer) Render(matrix *pairing.Matrix, recencyMatrix *pairing.RecencyMatrix, developers []git.Developer, strategy string, recommendations []Recommendation) error {
@@ -49,14 +51,24 @@ func (r *CLIRenderer) Render(matrix *pairing.Matrix, recencyMatrix *pairing.Rece
 
 // Render outputs the matrix and recommendations as HTML
 func (r *HTMLRenderer) Render(matrix *pairing.Matrix, recencyMatrix *pairing.RecencyMatrix, developers []git.Developer, strategy string, recommendations []Recommendation) error {
-	return RenderHTMLAndOpen(matrix, developers, recommendations)
+	if r.OpenInBrowser {
+		return RenderHTMLAndOpen(matrix, developers, recommendations)
+	} else {
+		return RenderHTMLToWriter(os.Stdout, matrix, developers, recommendations)
+	}
 }
 
 // NewRenderer creates the appropriate renderer based on output format
+// This is kept for backward compatibility and defaults to not opening browser
 func NewRenderer(outputFormat string) OutputRenderer {
+	return NewRendererWithOpen(outputFormat, false)
+}
+
+// NewRendererWithOpen creates the appropriate renderer based on output format and open behavior
+func NewRendererWithOpen(outputFormat string, openInBrowser bool) OutputRenderer {
 	switch outputFormat {
 	case "html":
-		return &HTMLRenderer{}
+		return &HTMLRenderer{OpenInBrowser: openInBrowser}
 	default:
 		return &CLIRenderer{}
 	}
