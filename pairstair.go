@@ -8,6 +8,7 @@ import (
 	"runtime/debug"
 
 	"github.com/gypsydave5/pairstair/internal/git"
+	"github.com/gypsydave5/pairstair/internal/team"
 	"github.com/gypsydave5/pairstair/internal/update"
 )
 
@@ -17,6 +18,9 @@ const Version = "0.5.0-dev"
 // Use git package types as the canonical domain types
 type Commit = git.Commit
 type Developer = git.Developer
+
+// Use team package type as the canonical domain type
+type Team = team.Team
 
 // NewDeveloper creates a Developer from git package - maintain compatibility
 var NewDeveloper = git.NewDeveloper
@@ -125,7 +129,7 @@ func main() {
 	exitOnError(err, "Error getting working directory")
 
 	teamPath := filepath.Join(wd, ".team")
-	team, err := NewTeamFromFile(teamPath, config.Team)
+	teamObj, err := team.NewTeamFromFile(teamPath, config.Team)
 	useTeam := true
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -138,7 +142,7 @@ func main() {
 	commits, err := git.GetCommitsSince(config.Window)
 	exitOnError(err, "Error getting git commits")
 
-	matrix, pairRecency, devs, shortLabels, emailToName := BuildPairMatrix(team, commits, useTeam)
+	matrix, pairRecency, devs, shortLabels, emailToName := BuildPairMatrix(teamObj, commits, useTeam)
 
 	renderer := NewRenderer(config.Output)
 	err = renderer.Render(matrix, pairRecency, devs, shortLabels, emailToName, config.Strategy)

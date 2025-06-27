@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gypsydave5/pairstair/internal/git"
+	"github.com/gypsydave5/pairstair/internal/team"
 )
 
 func TestParseCoAuthors(t *testing.T) {
@@ -56,7 +57,7 @@ func TestMatrixLogic(t *testing.T) {
 		},
 	}
 
-	emptyTeam, _ := NewTeam([]string{})
+	emptyTeam, _ := team.NewTeam([]string{})
 	matrix, _, _, _, _ := BuildPairMatrix(emptyTeam, commits, false)
 
 	// Alice/Bob should have 1 (same day, only count once)
@@ -73,7 +74,7 @@ func TestMatrixLogic(t *testing.T) {
 
 func TestMultipleEmailsInTeamFile(t *testing.T) {
 	// Team file with Alice having multiple email addresses
-	team, _ := NewTeam([]string{
+	teamObj, _ := team.NewTeam([]string{
 		"Alice <alice@example.com>,<alice.work@company.com>",
 		"Bob <bob@example.com>",
 	})
@@ -92,7 +93,7 @@ func TestMultipleEmailsInTeamFile(t *testing.T) {
 		},
 	}
 
-	matrix, _, devs, _, _ := BuildPairMatrix(team, commits, true)
+	matrix, _, devs, _, _ := BuildPairMatrix(teamObj, commits, true)
 
 	// We should only have 2 developers (Alice and Bob), not 3
 	if len(devs) != 2 {
@@ -123,7 +124,7 @@ func TestMultipleEmailsInTeamFile(t *testing.T) {
 
 func TestTeamFileCanonicalName(t *testing.T) {
 	// Team file with a canonical name
-	team, _ := NewTeam([]string{
+	teamObj, _ := team.NewTeam([]string{
 		"Canonical Alice <alice@example.com>",
 		"Bob <bob@example.com>",
 	})
@@ -138,7 +139,7 @@ func TestTeamFileCanonicalName(t *testing.T) {
 	}
 
 	// Build the matrix with useTeam=true
-	_, _, _, _, emailToName := BuildPairMatrix(team, commits, true)
+	_, _, _, _, emailToName := BuildPairMatrix(teamObj, commits, true)
 
 	// Check that Alice's name is the canonical one from the team file
 	aliceEmail := "alice@example.com"
@@ -166,7 +167,7 @@ func TestMultipleAuthorsInCommit(t *testing.T) {
 		},
 	}
 
-	emptyTeam, _ := NewTeam([]string{})
+	emptyTeam, _ := team.NewTeam([]string{})
 	matrix, _, _, _, _ := BuildPairMatrix(emptyTeam, commits, false)
 
 	// With 3 authors, we should have 3 pairs: (Alice, Bob), (Alice, Carol), (Bob, Carol)
@@ -195,7 +196,7 @@ func TestMultipleAuthorsInCommit(t *testing.T) {
 
 func TestComprehensivePairMatrix(t *testing.T) {
 	// Create a large team with developers having multiple email addresses
-	team, err := NewTeam([]string{
+	teamObj, err := team.NewTeam([]string{
 		"Alice Smith <alice@example.com>,<alice.smith@company.com>,<asmith@personal.net>",
 		"Bob Jones <bob@example.com>,<bjones@company.com>",
 		"Carol Davis <carol@example.com>,<cdavis@company.com>",
@@ -205,11 +206,6 @@ func TestComprehensivePairMatrix(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatalf("failed to create team: %v", err)
-	}
-
-	// Verify team setup
-	if len(team.developers) != 6 {
-		t.Errorf("expected 6 developers in team, got %d", len(team.developers))
 	}
 
 	// Create a comprehensive set of commits covering various scenarios
@@ -314,7 +310,7 @@ func TestComprehensivePairMatrix(t *testing.T) {
 	}
 
 	// Test with team information
-	matrix, _, devs, shortLabels, emailToName := BuildPairMatrix(team, commits, true)
+	matrix, _, devs, shortLabels, emailToName := BuildPairMatrix(teamObj, commits, true)
 
 	// Check number of developers
 	if len(devs) != 6 {
@@ -439,7 +435,7 @@ func TestLeastRecentStrategy(t *testing.T) {
 		},
 	}
 
-	emptyTeam, _ := NewTeam([]string{})
+	emptyTeam, _ := team.NewTeam([]string{})
 	matrix, recencyMatrix, devs, _, _ := BuildPairMatrix(emptyTeam, commits, false)
 
 	// Test recency tracking
@@ -518,22 +514,22 @@ Grace Ops <grace@example.com>
 	}
 
 	// Test reading entire team (no sub-team specified)
-	team, err := readTeamFile(teamFile, "")
+	teamMembers, err := team.ReadTeamFile(teamFile, "")
 	if err != nil {
 		t.Fatalf("Failed to read team file: %v", err)
 	}
 	expected := []string{"Alice Example <alice@example.com>", "Bob Dev <bob@example.com>"}
-	if len(team) != len(expected) {
-		t.Fatalf("Expected %d members, got %d", len(expected), len(team))
+	if len(teamMembers) != len(expected) {
+		t.Fatalf("Expected %d members, got %d", len(expected), len(teamMembers))
 	}
 	for i, member := range expected {
-		if team[i] != member {
-			t.Errorf("Expected member %q, got %q", member, team[i])
+		if teamMembers[i] != member {
+			t.Errorf("Expected member %q, got %q", member, teamMembers[i])
 		}
 	}
 
 	// Test reading frontend sub-team
-	frontendTeam, err := readTeamFile(teamFile, "frontend")
+	frontendTeam, err := team.ReadTeamFile(teamFile, "frontend")
 	if err != nil {
 		t.Fatalf("Failed to read frontend team: %v", err)
 	}
@@ -548,7 +544,7 @@ Grace Ops <grace@example.com>
 	}
 
 	// Test reading backend sub-team
-	backendTeam, err := readTeamFile(teamFile, "backend")
+	backendTeam, err := team.ReadTeamFile(teamFile, "backend")
 	if err != nil {
 		t.Fatalf("Failed to read backend team: %v", err)
 	}
@@ -563,7 +559,7 @@ Grace Ops <grace@example.com>
 	}
 
 	// Test reading non-existent sub-team
-	nonExistentTeam, err := readTeamFile(teamFile, "nonexistent")
+	nonExistentTeam, err := team.ReadTeamFile(teamFile, "nonexistent")
 	if err != nil {
 		t.Fatalf("Failed to read team file: %v", err)
 	}
@@ -593,22 +589,22 @@ Frank API <frank@example.com>
 	}
 
 	// Test creating team from frontend sub-team
-	team, err := NewTeamFromFile(teamFile, "frontend")
+	teamObj, err := team.NewTeamFromFile(teamFile, "frontend")
 	if err != nil {
 		t.Fatalf("Failed to create team from file: %v", err)
 	}
 
 	// Verify that only frontend developers are included
-	if !team.HasDeveloperByEmail("carol@example.com") {
+	if !teamObj.HasDeveloperByEmail("carol@example.com") {
 		t.Error("Expected Carol to be in frontend team")
 	}
-	if !team.HasDeveloperByEmail("dave@example.com") {
+	if !teamObj.HasDeveloperByEmail("dave@example.com") {
 		t.Error("Expected Dave to be in frontend team")
 	}
-	if team.HasDeveloperByEmail("eve@example.com") {
+	if teamObj.HasDeveloperByEmail("eve@example.com") {
 		t.Error("Expected Eve NOT to be in frontend team")
 	}
-	if team.HasDeveloperByEmail("alice@example.com") {
+	if teamObj.HasDeveloperByEmail("alice@example.com") {
 		t.Error("Expected Alice NOT to be in frontend team")
 	}
 }
@@ -633,7 +629,7 @@ Dave Backend <dave@example.com>
 	}
 
 	// Test frontend team - should include Bob and Carol
-	frontendTeam, err := NewTeamFromFile(teamFile, "frontend")
+	frontendTeam, err := team.NewTeamFromFile(teamFile, "frontend")
 	if err != nil {
 		t.Fatalf("Failed to create frontend team: %v", err)
 	}
@@ -648,7 +644,7 @@ Dave Backend <dave@example.com>
 	}
 
 	// Test backend team - should include Bob and Dave
-	backendTeam, err := NewTeamFromFile(teamFile, "backend")
+	backendTeam, err := team.NewTeamFromFile(teamFile, "backend")
 	if err != nil {
 		t.Fatalf("Failed to create backend team: %v", err)
 	}
@@ -663,7 +659,7 @@ Dave Backend <dave@example.com>
 	}
 
 	// Test main team - should only include Alice
-	mainTeam, err := NewTeamFromFile(teamFile, "")
+	mainTeam, err := team.NewTeamFromFile(teamFile, "")
 	if err != nil {
 		t.Fatalf("Failed to create main team: %v", err)
 	}
@@ -697,7 +693,7 @@ Dave SubTeamOnly <dave@example.com>
 	}
 
 	// Test main team (no sub-team specified)
-	mainTeam, err := NewTeamFromFile(teamFile, "")
+	mainTeam, err := team.NewTeamFromFile(teamFile, "")
 	if err != nil {
 		t.Fatalf("Failed to create main team: %v", err)
 	}
@@ -742,7 +738,7 @@ func TestCoAuthorPairingDetection(t *testing.T) {
 	// Create team with Ahmad and Tamara using specific emails
 	// Include both Tamara emails to match the real-world scenario where team files
 	// should list all email variations for each developer
-	team, err := NewTeam([]string{
+	teamObj, err := team.NewTeam([]string{
 		"Ahmad Qurbanzada <ahmad.qurbanzada@springernature.com>",
 		"Tamara Jordan <20561445+tamj0rd2@users.noreply.github.com>,<tamara.jordan@springernature.com>",
 	})
@@ -766,7 +762,7 @@ func TestCoAuthorPairingDetection(t *testing.T) {
 	}
 
 	// Build pair matrix with team enabled
-	matrix, _, devs, _, _ := BuildPairMatrix(team, commits, true)
+	matrix, _, devs, _, _ := BuildPairMatrix(teamObj, commits, true)
 
 	// Debug: print what we got
 	t.Logf("Developers found: %v", devs)

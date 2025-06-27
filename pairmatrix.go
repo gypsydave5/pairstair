@@ -176,7 +176,7 @@ func BuildPairMatrix(team Team, commits []Commit, useTeam bool) (*Matrix, *Recen
 
 	// Add any team members not found in commits
 	if useTeam {
-		for _, tm := range team.team {
+		for _, tm := range team.GetTeamMembers() {
 			emails := git.ExtractAllEmails(tm)
 			if len(emails) > 0 {
 				primaryEmail := emails[0]
