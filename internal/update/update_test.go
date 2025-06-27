@@ -1,17 +1,19 @@
-package main
+package update_test
 
 import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/gypsydave5/pairstair/internal/update"
 )
 
 func TestCheckForUpdates(t *testing.T) {
 	tests := []struct {
 		name           string
 		currentVersion string
-		mockResponse   []GitHubRelease
+		mockResponse   []update.Release
 		mockStatusCode int
 		expectMessage  bool
 		expectedMsg    string
@@ -19,7 +21,7 @@ func TestCheckForUpdates(t *testing.T) {
 		{
 			name:           "newer version available",
 			currentVersion: "v0.5.0",
-			mockResponse: []GitHubRelease{
+			mockResponse: []update.Release{
 				{TagName: "v0.6.0", Draft: false},
 				{TagName: "v0.5.0", Draft: false},
 			},
@@ -30,7 +32,7 @@ func TestCheckForUpdates(t *testing.T) {
 		{
 			name:           "current version is latest",
 			currentVersion: "v0.6.0",
-			mockResponse: []GitHubRelease{
+			mockResponse: []update.Release{
 				{TagName: "v0.6.0", Draft: false},
 				{TagName: "v0.5.0", Draft: false},
 			},
@@ -41,7 +43,7 @@ func TestCheckForUpdates(t *testing.T) {
 		{
 			name:           "development version newer than latest",
 			currentVersion: "0.7.0-dev+abc1234",
-			mockResponse: []GitHubRelease{
+			mockResponse: []update.Release{
 				{TagName: "v0.6.0", Draft: false},
 			},
 			mockStatusCode: 200,
@@ -59,7 +61,7 @@ func TestCheckForUpdates(t *testing.T) {
 		{
 			name:           "empty response returns empty string",
 			currentVersion: "v0.5.0",
-			mockResponse:   []GitHubRelease{},
+			mockResponse:   []update.Release{},
 			mockStatusCode: 200,
 			expectMessage:  false,
 			expectedMsg:    "",
@@ -67,7 +69,7 @@ func TestCheckForUpdates(t *testing.T) {
 		{
 			name:           "draft releases are ignored",
 			currentVersion: "v0.5.0",
-			mockResponse: []GitHubRelease{
+			mockResponse: []update.Release{
 				{TagName: "v0.7.0", Draft: true},  // This should be ignored
 				{TagName: "v0.6.0", Draft: false}, // This is the latest non-draft
 			},
@@ -88,8 +90,8 @@ func TestCheckForUpdates(t *testing.T) {
 			}))
 			defer server.Close()
 
-			// Test the update check function
-			message := checkForUpdateWithURL(tt.currentVersion, server.URL)
+			// Test the update check function using the public API
+			message := update.CheckForUpdateWithURL(tt.currentVersion, server.URL)
 
 			if tt.expectMessage {
 				if message == "" {
@@ -107,56 +109,56 @@ func TestCheckForUpdates(t *testing.T) {
 	}
 }
 
-func TestCompareVersions(t *testing.T) {
+func TestIsNewerVersion(t *testing.T) {
 	tests := []struct {
-		name       string
-		current    string
-		latest     string
+		name        string
+		current     string
+		latest      string
 		expectNewer bool
 	}{
 		{
-			name:       "newer version available",
-			current:    "v0.5.0",
-			latest:     "v0.6.0",
+			name:        "newer version available",
+			current:     "v0.5.0",
+			latest:      "v0.6.0",
 			expectNewer: true,
 		},
 		{
-			name:       "same version",
-			current:    "v0.5.0",
-			latest:     "v0.5.0",
+			name:        "same version",
+			current:     "v0.5.0",
+			latest:      "v0.5.0",
 			expectNewer: false,
 		},
 		{
-			name:       "current is newer",
-			current:    "v0.6.0",
-			latest:     "v0.5.0",
+			name:        "current is newer",
+			current:     "v0.6.0",
+			latest:      "v0.5.0",
 			expectNewer: false,
 		},
 		{
-			name:       "development version vs release",
-			current:    "0.5.0-dev+abc1234",
-			latest:     "v0.6.0",
+			name:        "development version vs release",
+			current:     "0.5.0-dev+abc1234",
+			latest:      "v0.6.0",
 			expectNewer: true,
 		},
 		{
-			name:       "development version newer than release",
-			current:    "0.7.0-dev+abc1234",
-			latest:     "v0.6.0",
+			name:        "development version newer than release",
+			current:     "0.7.0-dev+abc1234",
+			latest:      "v0.6.0",
 			expectNewer: false,
 		},
 		{
-			name:       "handle missing v prefix",
-			current:    "0.5.0",
-			latest:     "v0.6.0",
+			name:        "handle missing v prefix",
+			current:     "0.5.0",
+			latest:      "v0.6.0",
 			expectNewer: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := isNewerVersion(tt.current, tt.latest)
+			result := update.IsNewerVersion(tt.current, tt.latest)
 			if result != tt.expectNewer {
-				t.Errorf("isNewerVersion(%q, %q) = %v, want %v", tt.current, tt.latest, result, tt.expectNewer)
+				t.Errorf("IsNewerVersion(%q, %q) = %v, want %v", tt.current, tt.latest, result, tt.expectNewer)
 			}
 		})
 	}

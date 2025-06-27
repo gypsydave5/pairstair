@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/debug"
+
+	"github.com/gypsydave5/pairstair/internal/update"
 )
 
 // Version is the fallback version, overridden by build info when available
@@ -101,7 +103,7 @@ func main() {
 	config := parseFlags()
 
 	// Check for updates (silent failure, no caching)
-	if updateMessage := checkForUpdate(getVersion()); updateMessage != "" {
+	if updateMessage := update.CheckForUpdate(getVersion()); updateMessage != "" {
 		fmt.Fprintln(os.Stderr, updateMessage)
 		fmt.Fprintln(os.Stderr, "")
 	}

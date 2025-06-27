@@ -1,4 +1,4 @@
-package main
+package update
 
 import (
 	"encoding/json"
@@ -9,19 +9,20 @@ import (
 	"time"
 )
 
-// GitHubRelease represents a GitHub release from the API
-type GitHubRelease struct {
+// Release represents a GitHub release from the API
+type Release struct {
 	TagName string `json:"tag_name"`
 	Draft   bool   `json:"draft"`
 }
 
-// checkForUpdate checks for a newer version and returns an update message if available
-func checkForUpdate(currentVersion string) string {
-	return checkForUpdateWithURL(currentVersion, "https://api.github.com/repos/gypsydave5/pairstair/releases")
+// CheckForUpdate checks for a newer version and returns an update message if available
+func CheckForUpdate(currentVersion string) string {
+	return CheckForUpdateWithURL(currentVersion, "https://api.github.com/repos/gypsydave5/pairstair/releases")
 }
 
-// checkForUpdateWithURL checks for updates using a custom URL (for testing)
-func checkForUpdateWithURL(currentVersion, url string) string {
+// CheckForUpdateWithURL checks for updates using a custom URL.
+// This is exported to allow testing with mock servers.
+func CheckForUpdateWithURL(currentVersion, url string) string {
 	client := &http.Client{Timeout: 3 * time.Second}
 
 	resp, err := client.Get(url)
@@ -34,7 +35,7 @@ func checkForUpdateWithURL(currentVersion, url string) string {
 		return "" // Silent failure
 	}
 
-	var releases []GitHubRelease
+	var releases []Release
 	if err := json.NewDecoder(resp.Body).Decode(&releases); err != nil {
 		return "" // Silent failure
 	}
@@ -52,15 +53,16 @@ func checkForUpdateWithURL(currentVersion, url string) string {
 		return "" // No releases found
 	}
 
-	if isNewerVersion(currentVersion, latestVersion) {
+	if IsNewerVersion(currentVersion, latestVersion) {
 		return fmt.Sprintf("A newer version of pairstair is available: %s (you have %s)", latestVersion, currentVersion)
 	}
 
 	return ""
 }
 
-// isNewerVersion compares two version strings and returns true if latest is newer than current
-func isNewerVersion(current, latest string) bool {
+// IsNewerVersion compares two version strings and returns true if latest is newer than current.
+// This is exported to allow external testing and potential reuse.
+func IsNewerVersion(current, latest string) bool {
 	currentClean := cleanVersion(current)
 	latestClean := cleanVersion(latest)
 
