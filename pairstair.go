@@ -81,6 +81,7 @@ type Config struct {
 	Strategy string
 	Team     string
 	Version  bool
+	Open     bool
 }
 
 // parseFlags parses command-line flags and returns a Config
@@ -91,6 +92,7 @@ func parseFlags() *Config {
 	flag.StringVar(&config.Strategy, "strategy", "least-paired", "Recommendation strategy: 'least-paired' (default) or 'least-recent'")
 	flag.StringVar(&config.Team, "team", "", "Sub-team to analyze (e.g. 'frontend', 'backend')")
 	flag.BoolVar(&config.Version, "version", false, "Show version information")
+	flag.BoolVar(&config.Open, "open", false, "Open HTML output in browser (only applies when -output=html)")
 	flag.Parse()
 	return config
 }
@@ -145,7 +147,7 @@ func main() {
 		recommendations = output.RecommendPairsOptimal(developers, matrix)
 	}
 
-	renderer := output.NewRenderer(config.Output)
+	renderer := output.NewRendererWithOpen(config.Output, config.Open)
 	err = renderer.Render(matrix, pairRecency, developers, config.Strategy, recommendations)
 	exitOnError(err, "Error rendering output")
 }
