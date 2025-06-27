@@ -8,6 +8,7 @@ import (
 	"runtime/debug"
 
 	"github.com/gypsydave5/pairstair/internal/git"
+	"github.com/gypsydave5/pairstair/internal/output"
 	"github.com/gypsydave5/pairstair/internal/pairing"
 	"github.com/gypsydave5/pairstair/internal/team"
 	"github.com/gypsydave5/pairstair/internal/update"
@@ -153,7 +154,16 @@ func main() {
 
 	matrix, pairRecency, devs, shortLabels, emailToName := BuildPairMatrix(teamObj, commits, useTeam)
 
-	renderer := NewRenderer(config.Output)
-	err = renderer.Render(matrix, pairRecency, devs, shortLabels, emailToName, config.Strategy)
+	// Generate recommendations based on strategy
+	var recommendations []output.Recommendation
+	switch config.Strategy {
+	case "least-recent":
+		recommendations = output.RecommendPairsLeastRecent(devs, matrix, pairRecency)
+	default: // least-paired
+		recommendations = output.RecommendPairsOptimal(devs, matrix)
+	}
+
+	renderer := output.NewRenderer(config.Output)
+	err = renderer.Render(matrix, pairRecency, devs, shortLabels, emailToName, config.Strategy, recommendations)
 	exitOnError(err, "Error rendering output")
 }

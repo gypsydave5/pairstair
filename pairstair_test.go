@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gypsydave5/pairstair/internal/git"
+	"github.com/gypsydave5/pairstair/internal/output"
 	"github.com/gypsydave5/pairstair/internal/team"
 )
 
@@ -463,7 +464,7 @@ func TestLeastRecentStrategy(t *testing.T) {
 	}
 
 	// Test recommendations using least-recent strategy
-	recommendations := recommendPairsLeastRecent(devs, matrix, recencyMatrix)
+	recommendations := output.RecommendPairsLeastRecent(devs, matrix, recencyMatrix)
 
 	// Should recommend pairs that haven't worked together or worked together longest ago
 	if len(recommendations) < 2 {
