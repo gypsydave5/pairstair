@@ -134,18 +134,18 @@ func main() {
 	commits, err := git.GetCommitsSince(config.Window)
 	exitOnError(err, "Error getting git commits")
 
-	matrix, pairRecency, devs, shortLabels, emailToName := pairing.BuildPairMatrix(teamObj, commits, useTeam)
+	matrix, pairRecency, developers := pairing.BuildPairMatrix(teamObj, commits, useTeam)
 
 	// Generate recommendations based on strategy
 	var recommendations []output.Recommendation
 	switch config.Strategy {
 	case "least-recent":
-		recommendations = output.RecommendPairsLeastRecent(devs, matrix, pairRecency)
+		recommendations = output.RecommendPairsLeastRecent(developers, matrix, pairRecency)
 	default: // least-paired
-		recommendations = output.RecommendPairsOptimal(devs, matrix)
+		recommendations = output.RecommendPairsOptimal(developers, matrix)
 	}
 
 	renderer := output.NewRenderer(config.Output)
-	err = renderer.Render(matrix, pairRecency, devs, shortLabels, emailToName, config.Strategy, recommendations)
+	err = renderer.Render(matrix, pairRecency, developers, config.Strategy, recommendations)
 	exitOnError(err, "Error rendering output")
 }

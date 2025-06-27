@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gypsydave5/pairstair/internal/git"
 	"github.com/gypsydave5/pairstair/internal/pairing"
 )
 
@@ -29,7 +30,7 @@ type Recommendation struct {
 
 // OutputRenderer provides a unified interface for different output formats
 type OutputRenderer interface {
-	Render(matrix *pairing.Matrix, recencyMatrix *pairing.RecencyMatrix, devs []string, shortLabels map[string]string, emailToName map[string]string, strategy string, recommendations []Recommendation) error
+	Render(matrix *pairing.Matrix, recencyMatrix *pairing.RecencyMatrix, developers []git.Developer, strategy string, recommendations []Recommendation) error
 }
 
 // CLIRenderer handles console output
@@ -39,15 +40,15 @@ type CLIRenderer struct{}
 type HTMLRenderer struct{}
 
 // Render outputs the matrix and recommendations to the console
-func (r *CLIRenderer) Render(matrix *pairing.Matrix, recencyMatrix *pairing.RecencyMatrix, devs []string, shortLabels map[string]string, emailToName map[string]string, strategy string, recommendations []Recommendation) error {
-	PrintMatrixCLI(matrix, devs, shortLabels, emailToName)
-	PrintRecommendationsCLI(recommendations, shortLabels, strategy)
+func (r *CLIRenderer) Render(matrix *pairing.Matrix, recencyMatrix *pairing.RecencyMatrix, developers []git.Developer, strategy string, recommendations []Recommendation) error {
+	PrintMatrixCLI(matrix, developers)
+	PrintRecommendationsCLI(recommendations, strategy)
 	return nil
 }
 
 // Render outputs the matrix and recommendations as HTML
-func (r *HTMLRenderer) Render(matrix *pairing.Matrix, recencyMatrix *pairing.RecencyMatrix, devs []string, shortLabels map[string]string, emailToName map[string]string, strategy string, recommendations []Recommendation) error {
-	return RenderHTMLAndOpen(matrix, devs, shortLabels, emailToName, recommendations)
+func (r *HTMLRenderer) Render(matrix *pairing.Matrix, recencyMatrix *pairing.RecencyMatrix, developers []git.Developer, strategy string, recommendations []Recommendation) error {
+	return RenderHTMLAndOpen(matrix, developers, recommendations)
 }
 
 // NewRenderer creates the appropriate renderer based on output format
@@ -61,37 +62,33 @@ func NewRenderer(outputFormat string) OutputRenderer {
 }
 
 // PrintMatrixCLI prints the matrix and legend to the CLI
-func PrintMatrixCLI(matrix *pairing.Matrix, devs []string, shortLabels map[string]string, emailToName map[string]string) {
+func PrintMatrixCLI(matrix *pairing.Matrix, developers []git.Developer) {
 	fmt.Println("Legend:")
-	for _, d := range devs {
-		name := emailToName[d]
-		if name == "" {
-			name = d
-		}
-		fmt.Printf("  %-6s = %-20s %s\n", shortLabels[d], name, d)
+	for _, dev := range developers {
+		fmt.Printf("  %-6s = %-20s %s\n", dev.AbbreviatedName, dev.DisplayName, dev.CanonicalEmail())
 	}
 	fmt.Println()
 
 	fmt.Printf("%-8s", "")
-	for _, d := range devs {
-		fmt.Printf("%-8s", shortLabels[d])
+	for _, dev := range developers {
+		fmt.Printf("%-8s", dev.AbbreviatedName)
 	}
 	fmt.Println()
-	for _, d1 := range devs {
-		fmt.Printf("%-8s", shortLabels[d1])
-		for _, d2 := range devs {
-			if d1 == d2 {
+	for _, dev1 := range developers {
+		fmt.Printf("%-8s", dev1.AbbreviatedName)
+		for _, dev2 := range developers {
+			if dev1.CanonicalEmail() == dev2.CanonicalEmail() {
 				fmt.Printf("%-8s", "-")
 				continue
 			}
-			fmt.Printf("%-8d", matrix.Count(d1, d2))
+			fmt.Printf("%-8d", matrix.Count(dev1.CanonicalEmail(), dev2.CanonicalEmail()))
 		}
 		fmt.Println()
 	}
 }
 
 // PrintRecommendationsCLI prints recommendations to the CLI
-func PrintRecommendationsCLI(recommendations []Recommendation, shortLabels map[string]string, strategy string) {
+func PrintRecommendationsCLI(recommendations []Recommendation, strategy string) {
 	fmt.Println()
 	if len(recommendations) == 0 {
 		fmt.Println("Skipping pairing recommendations - too many developers (> 10)")
@@ -106,33 +103,31 @@ func PrintRecommendationsCLI(recommendations []Recommendation, shortLabels map[s
 	}
 	
 	for _, rec := range recommendations {
-		labelA := shortLabels[rec.A]
-		labelB := shortLabels[rec.B]
 		if rec.B == "" {
-			fmt.Printf("  %-6s (unpaired)\n", labelA)
+			fmt.Printf("  %-6s (unpaired)\n", rec.A)
 		} else {
 			if strategy == "least-recent" {
 				if rec.HasPaired {
 					if rec.DaysSince == 0 {
-						fmt.Printf("  %-6s <-> %-6s : last paired today\n", labelA, labelB)
+						fmt.Printf("  %-6s <-> %-6s : last paired today\n", rec.A, rec.B)
 					} else if rec.DaysSince == 1 {
-						fmt.Printf("  %-6s <-> %-6s : last paired 1 day ago\n", labelA, labelB)
+						fmt.Printf("  %-6s <-> %-6s : last paired 1 day ago\n", rec.A, rec.B)
 					} else {
-						fmt.Printf("  %-6s <-> %-6s : last paired %d days ago\n", labelA, labelB, rec.DaysSince)
+						fmt.Printf("  %-6s <-> %-6s : last paired %d days ago\n", rec.A, rec.B, rec.DaysSince)
 					}
 				} else {
-					fmt.Printf("  %-6s <-> %-6s : never paired\n", labelA, labelB)
+					fmt.Printf("  %-6s <-> %-6s : never paired\n", rec.A, rec.B)
 				}
 			} else {
-				fmt.Printf("  %-6s <-> %-6s : %d times\n", labelA, labelB, rec.Count)
+				fmt.Printf("  %-6s <-> %-6s : %d times\n", rec.A, rec.B, rec.Count)
 			}
 		}
 	}
 }
 
 // RenderHTMLAndOpen renders HTML output and opens it in the default browser
-func RenderHTMLAndOpen(matrix *pairing.Matrix, devs []string, shortLabels map[string]string, emailToName map[string]string, recommendations []Recommendation) error {
-	html := renderHTML(matrix, devs, shortLabels, emailToName, recommendations)
+func RenderHTMLAndOpen(matrix *pairing.Matrix, developers []git.Developer, recommendations []Recommendation) error {
+	html := renderHTML(matrix, developers, recommendations)
 	tmpfile, err := os.CreateTemp("", "pairstair-*.html")
 	if err != nil {
 		return err
@@ -147,7 +142,7 @@ func RenderHTMLAndOpen(matrix *pairing.Matrix, devs []string, shortLabels map[st
 }
 
 // renderHTML generates HTML output for the matrix and recommendations
-func renderHTML(matrix *pairing.Matrix, devs []string, shortLabels map[string]string, emailToName map[string]string, recommendations []Recommendation) string {
+func renderHTML(matrix *pairing.Matrix, developers []git.Developer, recommendations []Recommendation) string {
 	var b strings.Builder
 	b.WriteString("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Pair Stair</title>")
 	b.WriteString(`<style>
@@ -162,29 +157,25 @@ th { background: #eee; }
 
 	// Legend
 	b.WriteString("<h2>Legend</h2><table class=\"legend-table\"><tr><th>Initials</th><th>Name</th><th>Email</th></tr>")
-	for _, d := range devs {
-		name := emailToName[d]
-		if name == "" {
-			name = d
-		}
-		b.WriteString(fmt.Sprintf("<tr><td>%s</td><td>%s</td><td>%s</td></tr>", shortLabels[d], name, d))
+	for _, dev := range developers {
+		b.WriteString(fmt.Sprintf("<tr><td>%s</td><td>%s</td><td>%s</td></tr>", dev.AbbreviatedName, dev.DisplayName, dev.CanonicalEmail()))
 	}
 	b.WriteString("</table>")
 
 	// Matrix
 	b.WriteString("<h2>Pair Matrix</h2><table><tr><th></th>")
-	for _, d := range devs {
-		b.WriteString(fmt.Sprintf("<th>%s</th>", shortLabels[d]))
+	for _, dev := range developers {
+		b.WriteString(fmt.Sprintf("<th>%s</th>", dev.AbbreviatedName))
 	}
 	b.WriteString("</tr>")
-	for _, d1 := range devs {
-		b.WriteString(fmt.Sprintf("<tr><th>%s</th>", shortLabels[d1]))
-		for _, d2 := range devs {
-			if d1 == d2 {
+	for _, dev1 := range developers {
+		b.WriteString(fmt.Sprintf("<tr><th>%s</th>", dev1.AbbreviatedName))
+		for _, dev2 := range developers {
+			if dev1.CanonicalEmail() == dev2.CanonicalEmail() {
 				b.WriteString("<td>-</td>")
 				continue
 			}
-			b.WriteString(fmt.Sprintf("<td>%d</td>", matrix.Count(d1, d2)))
+			b.WriteString(fmt.Sprintf("<td>%d</td>", matrix.Count(dev1.CanonicalEmail(), dev2.CanonicalEmail())))
 		}
 		b.WriteString("</tr>")
 	}
@@ -198,12 +189,10 @@ th { background: #eee; }
 	} else {
 		b.WriteString("<h2>Pairing Recommendations (least-paired overall, optimal matching)</h2><ul>")
 		for _, rec := range recommendations {
-			labelA := shortLabels[rec.A]
-			labelB := shortLabels[rec.B]
 			if rec.B == "" {
-				b.WriteString(fmt.Sprintf("<li><b>%s</b> (unpaired)</li>", labelA))
+				b.WriteString(fmt.Sprintf("<li><b>%s</b> (unpaired)</li>", rec.A))
 			} else {
-				b.WriteString(fmt.Sprintf("<li><b>%s</b> &lt;-&gt; <b>%s</b> : %d times</li>", labelA, labelB, rec.Count))
+				b.WriteString(fmt.Sprintf("<li><b>%s</b> &lt;-&gt; <b>%s</b> : %d times</li>", rec.A, rec.B, rec.Count))
 			}
 		}
 		b.WriteString("</ul>")
@@ -234,28 +223,28 @@ func openBrowser(path string) error {
 
 // RecommendPairsOptimal generates pairing recommendations using greedy approach 
 // (minimize total pair count, each dev appears once)
-func RecommendPairsOptimal(devs []string, matrix *pairing.Matrix) []Recommendation {
-	if len(devs) < 2 {
+func RecommendPairsOptimal(developers []git.Developer, matrix *pairing.Matrix) []Recommendation {
+	if len(developers) < 2 {
 		return nil
 	}
 	
-	if len(devs) > 10 {
+	if len(developers) > 10 {
 		return []Recommendation{} // Return empty list for too many developers
 	}
 
 	// Create all possible pairs with their counts
 	type pairCandidate struct {
-		devA, devB string
+		devA, devB git.Developer
 		count      int
 	}
 
 	var candidates []pairCandidate
-	for i := 0; i < len(devs); i++ {
-		for j := i + 1; j < len(devs); j++ {
+	for i := 0; i < len(developers); i++ {
+		for j := i + 1; j < len(developers); j++ {
 			candidates = append(candidates, pairCandidate{
-				devA:  devs[i],
-				devB:  devs[j],
-				count: matrix.Count(devs[i], devs[j]),
+				devA:  developers[i],
+				devB:  developers[j],
+				count: matrix.Count(developers[i].CanonicalEmail(), developers[j].CanonicalEmail()),
 			})
 		}
 	}
@@ -270,22 +259,25 @@ func RecommendPairsOptimal(devs []string, matrix *pairing.Matrix) []Recommendati
 	var recommendations []Recommendation
 
 	for _, candidate := range candidates {
-		if !used[candidate.devA] && !used[candidate.devB] {
+		emailA := candidate.devA.CanonicalEmail()
+		emailB := candidate.devB.CanonicalEmail()
+		if !used[emailA] && !used[emailB] {
 			recommendations = append(recommendations, Recommendation{
-				A:     candidate.devA,
-				B:     candidate.devB,
+				A:     candidate.devA.AbbreviatedName,
+				B:     candidate.devB.AbbreviatedName,
 				Count: candidate.count,
 			})
-			used[candidate.devA] = true
-			used[candidate.devB] = true
+			used[emailA] = true
+			used[emailB] = true
 		}
 	}
 
 	// Handle unpaired developer if odd number
-	for _, dev := range devs {
-		if !used[dev] {
+	for _, dev := range developers {
+		email := dev.CanonicalEmail()
+		if !used[email] {
 			recommendations = append(recommendations, Recommendation{
-				A:     dev,
+				A:     dev.AbbreviatedName,
 				B:     "",
 				Count: 0,
 			})
@@ -297,8 +289,8 @@ func RecommendPairsOptimal(devs []string, matrix *pairing.Matrix) []Recommendati
 }
 
 // RecommendPairsLeastRecent generates pairing recommendations based on least recent collaboration
-func RecommendPairsLeastRecent(devs []string, matrix *pairing.Matrix, recencyMatrix *pairing.RecencyMatrix) []Recommendation {
-	n := len(devs)
+func RecommendPairsLeastRecent(developers []git.Developer, matrix *pairing.Matrix, recencyMatrix *pairing.RecencyMatrix) []Recommendation {
+	n := len(developers)
 	if n < 2 {
 		return nil
 	}
@@ -308,10 +300,10 @@ func RecommendPairsLeastRecent(devs []string, matrix *pairing.Matrix, recencyMat
 	}
 
 	type pairWithRecency struct {
-		pair     pairing.Pair
-		lastTime time.Time
-		hasData  bool
-		count    int
+		devA, devB git.Developer
+		lastTime   time.Time
+		hasData    bool
+		count      int
 	}
 
 	var allPairs []pairWithRecency
@@ -320,16 +312,17 @@ func RecommendPairsLeastRecent(devs []string, matrix *pairing.Matrix, recencyMat
 	// Generate all possible pairs
 	for i := 0; i < n; i++ {
 		for j := i + 1; j < n; j++ {
-			pair := pairing.Pair{A: devs[i], B: devs[j]}
-			if devs[i] > devs[j] {
-				pair = pairing.Pair{A: devs[j], B: devs[i]}
-			}
+			devA := developers[i]
+			devB := developers[j]
+			emailA := devA.CanonicalEmail()
+			emailB := devB.CanonicalEmail()
 
-			lastTime, hasData := recencyMatrix.LastPaired(devs[i], devs[j])
-			count := matrix.Count(devs[i], devs[j])
+			lastTime, hasData := recencyMatrix.LastPaired(emailA, emailB)
+			count := matrix.Count(emailA, emailB)
 
 			allPairs = append(allPairs, pairWithRecency{
-				pair:     pair,
+				devA:     devA,
+				devB:     devB,
 				lastTime: lastTime,
 				hasData:  hasData,
 				count:    count,
@@ -358,7 +351,9 @@ func RecommendPairsLeastRecent(devs []string, matrix *pairing.Matrix, recencyMat
 	used := make(map[string]bool)
 
 	for _, pairData := range allPairs {
-		if used[pairData.pair.A] || used[pairData.pair.B] {
+		emailA := pairData.devA.CanonicalEmail()
+		emailB := pairData.devB.CanonicalEmail()
+		if used[emailA] || used[emailB] {
 			continue
 		}
 
@@ -370,24 +365,25 @@ func RecommendPairsLeastRecent(devs []string, matrix *pairing.Matrix, recencyMat
 		}
 
 		recommendations = append(recommendations, Recommendation{
-			A:          pairData.pair.A,
-			B:          pairData.pair.B,
+			A:          pairData.devA.AbbreviatedName,
+			B:          pairData.devB.AbbreviatedName,
 			Count:      pairData.count,
 			LastPaired: pairData.lastTime,
 			DaysSince:  daysSince,
 			HasPaired:  pairData.hasData,
 		})
 
-		used[pairData.pair.A] = true
-		used[pairData.pair.B] = true
+		used[emailA] = true
+		used[emailB] = true
 	}
 
 	// Handle odd number of developers
 	if n%2 != 0 {
-		for _, dev := range devs {
-			if !used[dev] {
+		for _, dev := range developers {
+			email := dev.CanonicalEmail()
+			if !used[email] {
 				recommendations = append(recommendations, Recommendation{
-					A:         dev,
+					A:         dev.AbbreviatedName,
 					B:         "",
 					Count:     0,
 					DaysSince: 0,

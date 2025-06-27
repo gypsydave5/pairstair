@@ -60,7 +60,7 @@ func TestMatrixLogic(t *testing.T) {
 	}
 
 	emptyTeam, _ := team.NewTeam([]string{})
-	matrix, _, _, _, _ := pairing.BuildPairMatrix(emptyTeam, commits, false)
+	matrix, _, _ := pairing.BuildPairMatrix(emptyTeam, commits, false)
 
 	// Alice/Bob should have 1 (same day, only count once)
 	a, b := "alice@example.com", "bob@example.com"
@@ -95,24 +95,24 @@ func TestMultipleEmailsInTeamFile(t *testing.T) {
 		},
 	}
 
-	matrix, _, devs, _, _ := pairing.BuildPairMatrix(teamObj, commits, true)
+	matrix, _, developers := pairing.BuildPairMatrix(teamObj, commits, true)
 
 	// We should only have 2 developers (Alice and Bob), not 3
-	if len(devs) != 2 {
-		t.Errorf("expected 2 developers, got %d: %v", len(devs), devs)
+	if len(developers) != 2 {
+		t.Errorf("expected 2 developers, got %d: %v", len(developers), developers)
 	}
 
 	// Find Alice's canonical email (should be the first one in the team entry)
 	var aliceEmail string
-	for _, dev := range devs {
-		if strings.Contains(dev, "alice") {
-			aliceEmail = dev
+	for _, dev := range developers {
+		if strings.Contains(dev.CanonicalEmail(), "alice") {
+			aliceEmail = dev.CanonicalEmail()
 			break
 		}
 	}
 
 	if aliceEmail == "" {
-		t.Fatalf("could not find Alice in developers list: %v", devs)
+		t.Fatalf("could not find Alice in developers list: %v", developers)
 	}
 
 	// Check that both commits are counted as Alice pairing with Bob
@@ -141,18 +141,41 @@ func TestTeamFileCanonicalName(t *testing.T) {
 	}
 
 	// Build the matrix with useTeam=true
-	_, _, _, _, emailToName := pairing.BuildPairMatrix(teamObj, commits, true)
+	_, _, developers := pairing.BuildPairMatrix(teamObj, commits, true)
 
-	// Check that Alice's name is the canonical one from the team file
-	aliceEmail := "alice@example.com"
-	if name := emailToName[aliceEmail]; name != "Canonical Alice" {
-		t.Errorf("expected name to be 'Canonical Alice', got '%s'", name)
+	// Find Alice in the developers list
+	var alice *git.Developer
+	for _, dev := range developers {
+		if dev.CanonicalEmail() == "alice@example.com" {
+			alice = &dev
+			break
+		}
 	}
 
-	// Also verify that Bob's name is preserved
-	bobEmail := "bob@example.com"
-	if name := emailToName[bobEmail]; name != "Bob" {
-		t.Errorf("expected name to be 'Bob', got '%s'", name)
+	if alice == nil {
+		t.Fatalf("could not find Alice in developers list: %v", developers)
+	}
+
+	// Check that Alice's name is the canonical one from the team file
+	if alice.DisplayName != "Canonical Alice" {
+		t.Errorf("expected name to be 'Canonical Alice', got '%s'", alice.DisplayName)
+	}
+
+	// Find Bob and verify his name is preserved
+	var bob *git.Developer
+	for _, dev := range developers {
+		if dev.CanonicalEmail() == "bob@example.com" {
+			bob = &dev
+			break
+		}
+	}
+
+	if bob == nil {
+		t.Fatalf("could not find Bob in developers list: %v", developers)
+	}
+
+	if bob.DisplayName != "Bob" {
+		t.Errorf("expected name to be 'Bob', got '%s'", bob.DisplayName)
 	}
 }
 
@@ -170,7 +193,7 @@ func TestMultipleAuthorsInCommit(t *testing.T) {
 	}
 
 	emptyTeam, _ := team.NewTeam([]string{})
-	matrix, _, _, _, _ := pairing.BuildPairMatrix(emptyTeam, commits, false)
+	matrix, _, _ := pairing.BuildPairMatrix(emptyTeam, commits, false)
 
 	// With 3 authors, we should have 3 pairs: (Alice, Bob), (Alice, Carol), (Bob, Carol)
 	if matrix.Len() != 3 {
@@ -312,11 +335,11 @@ func TestComprehensivePairMatrix(t *testing.T) {
 	}
 
 	// Test with team information
-	matrix, _, devs, shortLabels, emailToName := pairing.BuildPairMatrix(teamObj, commits, true)
+	matrix, _, developers := pairing.BuildPairMatrix(teamObj, commits, true)
 
 	// Check number of developers
-	if len(devs) != 6 {
-		t.Errorf("expected 6 developers, got %d: %v", len(devs), devs)
+	if len(developers) != 6 {
+		t.Errorf("expected 6 developers, got %d: %v", len(developers), developers)
 	}
 
 	// Check expected pair counts
@@ -357,12 +380,7 @@ func TestComprehensivePairMatrix(t *testing.T) {
 		}
 	}
 
-	// Verify short labels are created for all developers
-	if len(shortLabels) != 6 {
-		t.Errorf("expected 6 short labels, got %d", len(shortLabels))
-	}
-
-	// Verify email to name mapping
+	// Verify developer names are properly extracted
 	expectedNames := map[string]string{
 		"alice@example.com": "Alice Smith",
 		"bob@example.com":   "Bob Jones",
@@ -372,46 +390,46 @@ func TestComprehensivePairMatrix(t *testing.T) {
 		"frank@example.com": "Frank Thomas",
 	}
 
-	for email, expectedName := range expectedNames {
-		if actualName := emailToName[email]; actualName != expectedName {
-			t.Errorf("email %s: expected name %q, got %q", email, expectedName, actualName)
+	for _, dev := range developers {
+		email := dev.CanonicalEmail()
+		if expectedName, exists := expectedNames[email]; exists {
+			if dev.DisplayName != expectedName {
+				t.Errorf("developer %s: expected name %q, got %q", email, expectedName, dev.DisplayName)
+			}
 		}
 	}
 
 	// Now test without team information
-	matrixNoTeam, _, devsNoTeam, shortLabelsNoTeam, emailToNameNoTeam := pairing.BuildPairMatrix(team.Team{}, commits, false)
+	matrixNoTeam, _, developersNoTeam := pairing.BuildPairMatrix(team.Team{}, commits, false)
 
 	// We expect more developers here because without team info, we don't consolidate alternate emails
 	expectedNonTeamDevsCount := 12 // All unique email addresses appear as separate developers
-	if len(devsNoTeam) != expectedNonTeamDevsCount {
+	if len(developersNoTeam) != expectedNonTeamDevsCount {
 		t.Errorf("expected %d developers with no team filter, got %d: %v",
-			expectedNonTeamDevsCount, len(devsNoTeam), devsNoTeam)
+			expectedNonTeamDevsCount, len(developersNoTeam), developersNoTeam)
 	}
 
-	// Check that external email has a label
-	var externalEmail string
-	for _, dev := range devsNoTeam {
-		if strings.Contains(dev, "external") {
-			externalEmail = dev
+	// Check that external email has proper name
+	var externalDev *git.Developer
+	for _, dev := range developersNoTeam {
+		if strings.Contains(dev.CanonicalEmail(), "external") {
+			externalDev = &dev
 			break
 		}
 	}
 
-	if externalEmail != "" {
-		if _, ok := shortLabelsNoTeam[externalEmail]; !ok {
-			t.Errorf("external email %s should have a short label", externalEmail)
-		}
-		if name, ok := emailToNameNoTeam[externalEmail]; !ok || name != "External Person" {
-			t.Errorf("external email %s should have name 'External Person', got %q", externalEmail, name)
+	if externalDev != nil {
+		if externalDev.DisplayName != "External Person" {
+			t.Errorf("external email %s should have name 'External Person', got %q", externalDev.CanonicalEmail(), externalDev.DisplayName)
 		}
 	} else {
 		t.Error("external email not found in no-team developers list")
 	}
 
 	// Verify the Alice-External pair exists in the no-team matrix
-	if externalEmail != "" {
+	if externalDev != nil {
 		aliceEmail := "alice@example.com"
-		if matrixNoTeam.Count(aliceEmail, externalEmail) != 1 {
+		if matrixNoTeam.Count(aliceEmail, externalDev.CanonicalEmail()) != 1 {
 			t.Errorf("expected Alice-External pair to have count 1 in no-team matrix")
 		}
 	}
@@ -438,7 +456,7 @@ func TestLeastRecentStrategy(t *testing.T) {
 	}
 
 	emptyTeam, _ := team.NewTeam([]string{})
-	matrix, recencyMatrix, devs, _, _ := pairing.BuildPairMatrix(emptyTeam, commits, false)
+	matrix, recencyMatrix, developers := pairing.BuildPairMatrix(emptyTeam, commits, false)
 
 	// Test recency tracking
 	aliceEmail := "alice@example.com"
@@ -465,7 +483,7 @@ func TestLeastRecentStrategy(t *testing.T) {
 	}
 
 	// Test recommendations using least-recent strategy
-	recommendations := output.RecommendPairsLeastRecent(devs, matrix, recencyMatrix)
+	recommendations := output.RecommendPairsLeastRecent(developers, matrix, recencyMatrix)
 
 	// Should recommend pairs that haven't worked together or worked together longest ago
 	if len(recommendations) < 2 {
@@ -764,15 +782,15 @@ func TestCoAuthorPairingDetection(t *testing.T) {
 	}
 
 	// Build pair matrix with team enabled
-	matrix, _, devs, _, _ := pairing.BuildPairMatrix(teamObj, commits, true)
+	matrix, _, developers := pairing.BuildPairMatrix(teamObj, commits, true)
 
 	// Debug: print what we got
-	t.Logf("Developers found: %v", devs)
+	t.Logf("Developers found: %v", developers)
 	t.Logf("Matrix pairs: %d", matrix.Len())
 
 	// Should have exactly 2 developers in the final result
-	if len(devs) != 2 {
-		t.Errorf("expected 2 developers, got %d: %v", len(devs), devs)
+	if len(developers) != 2 {
+		t.Errorf("expected 2 developers, got %d: %v", len(developers), developers)
 	}
 
 	// Should have exactly 1 pair (Ahmad and Tamara)
@@ -782,19 +800,20 @@ func TestCoAuthorPairingDetection(t *testing.T) {
 
 	// Find Ahmad and Tamara's emails in the result
 	var ahmadEmail, tamaraEmail string
-	for _, dev := range devs {
-		if strings.Contains(dev, "ahmad") {
-			ahmadEmail = dev
-		} else if strings.Contains(dev, "tamj0rd2") || strings.Contains(dev, "tamara") {
-			tamaraEmail = dev
+	for _, dev := range developers {
+		email := dev.CanonicalEmail()
+		if strings.Contains(email, "ahmad") {
+			ahmadEmail = email
+		} else if strings.Contains(email, "tamj0rd2") || strings.Contains(email, "tamara") {
+			tamaraEmail = email
 		}
 	}
 
 	if ahmadEmail == "" {
-		t.Fatalf("could not find Ahmad in developers list: %v", devs)
+		t.Fatalf("could not find Ahmad in developers list: %v", developers)
 	}
 	if tamaraEmail == "" {
-		t.Fatalf("could not find Tamara in developers list: %v", devs)
+		t.Fatalf("could not find Tamara in developers list: %v", developers)
 	}
 
 	// Verify that Ahmad and Tamara are counted as having paired once

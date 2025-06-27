@@ -48,22 +48,14 @@ func TestBuildPairMatrixEmptyCommits(t *testing.T) {
 	emptyTeam, _ := team.NewTeam([]string{})
 	commits := []git.Commit{}
 	
-	matrix, recencyMatrix, devs, shortLabels, emailToName := pairing.BuildPairMatrix(emptyTeam, commits, false)
+	matrix, recencyMatrix, developers := pairing.BuildPairMatrix(emptyTeam, commits, false)
 	
 	if matrix.Len() != 0 {
 		t.Errorf("Expected empty matrix for no commits, got length %d", matrix.Len())
 	}
 	
-	if len(devs) != 0 {
-		t.Errorf("Expected no developers for no commits, got %d", len(devs))
-	}
-	
-	if len(shortLabels) != 0 {
-		t.Errorf("Expected no labels for no commits, got %d", len(shortLabels))
-	}
-	
-	if len(emailToName) != 0 {
-		t.Errorf("Expected no email mappings for no commits, got %d", len(emailToName))
+	if len(developers) != 0 {
+		t.Errorf("Expected no developers for no commits, got %d", len(developers))
 	}
 	
 	// Test recency matrix is also empty
@@ -83,7 +75,7 @@ func TestBuildPairMatrixSingleAuthor(t *testing.T) {
 		},
 	}
 	
-	matrix, _, devs, shortLabels, emailToName := pairing.BuildPairMatrix(emptyTeam, commits, false)
+	matrix, _, developers := pairing.BuildPairMatrix(emptyTeam, commits, false)
 	
 	// Single author commits should not create pairs
 	if matrix.Len() != 0 {
@@ -91,26 +83,22 @@ func TestBuildPairMatrixSingleAuthor(t *testing.T) {
 	}
 	
 	// But should include the developer
-	if len(devs) != 1 {
-		t.Errorf("Expected 1 developer, got %d", len(devs))
+	if len(developers) != 1 {
+		t.Errorf("Expected 1 developer, got %d", len(developers))
 	}
 	
-	if devs[0] != "alice@example.com" {
-		t.Errorf("Expected alice@example.com, got %s", devs[0])
+	if developers[0].CanonicalEmail() != "alice@example.com" {
+		t.Errorf("Expected alice@example.com, got %s", developers[0].CanonicalEmail())
 	}
 	
-	// Should have short label for Alice
-	if label, ok := shortLabels["alice@example.com"]; !ok {
-		t.Error("Expected short label for Alice")
-	} else if label == "" {
-		t.Error("Expected non-empty short label for Alice")
+	// Should have abbreviated name for Alice
+	if developers[0].AbbreviatedName == "" {
+		t.Error("Expected non-empty abbreviated name for Alice")
 	}
 	
-	// Should have email to name mapping
-	if name, ok := emailToName["alice@example.com"]; !ok {
-		t.Error("Expected email to name mapping for Alice")
-	} else if name != "Alice Smith" {
-		t.Errorf("Expected 'Alice Smith', got %s", name)
+	// Should have display name
+	if developers[0].DisplayName != "Alice Smith" {
+		t.Errorf("Expected 'Alice Smith', got %s", developers[0].DisplayName)
 	}
 }
 
@@ -126,7 +114,7 @@ func TestBuildPairMatrixBasicPairing(t *testing.T) {
 		},
 	}
 	
-	matrix, recencyMatrix, devs, shortLabels, emailToName := pairing.BuildPairMatrix(emptyTeam, commits, false)
+	matrix, recencyMatrix, developers := pairing.BuildPairMatrix(emptyTeam, commits, false)
 	
 	// Should have one pair
 	if matrix.Len() != 1 {
@@ -151,34 +139,31 @@ func TestBuildPairMatrixBasicPairing(t *testing.T) {
 	}
 	
 	// Should have both developers
-	if len(devs) != 2 {
-		t.Errorf("Expected 2 developers, got %d", len(devs))
+	if len(developers) != 2 {
+		t.Errorf("Expected 2 developers, got %d", len(developers))
 	}
 	
-	// Check developers are sorted
-	expectedDevs := []string{"alice@example.com", "bob@example.com"}
-	for i, expectedDev := range expectedDevs {
-		if devs[i] != expectedDev {
-			t.Errorf("Expected developer %s at index %d, got %s", expectedDev, i, devs[i])
+	// Check developers are sorted by email
+	expectedEmails := []string{"alice@example.com", "bob@example.com"}
+	for i, expectedEmail := range expectedEmails {
+		if developers[i].CanonicalEmail() != expectedEmail {
+			t.Errorf("Expected developer %s at index %d, got %s", expectedEmail, i, developers[i].CanonicalEmail())
 		}
 	}
 	
-	// Check short labels
-	if len(shortLabels) != 2 {
-		t.Errorf("Expected 2 short labels, got %d", len(shortLabels))
-	}
-	
-	// Check email mappings
-	expectedMappings := map[string]string{
+	// Check developer names
+	expectedNames := map[string]string{
 		"alice@example.com": "Alice Smith",
 		"bob@example.com":   "Bob Jones",
 	}
 	
-	for email, expectedName := range expectedMappings {
-		if name, ok := emailToName[email]; !ok {
-			t.Errorf("Missing email mapping for %s", email)
-		} else if name != expectedName {
-			t.Errorf("Expected name %s for %s, got %s", expectedName, email, name)
+	for _, dev := range developers {
+		if expectedName, ok := expectedNames[dev.CanonicalEmail()]; ok {
+			if dev.DisplayName != expectedName {
+				t.Errorf("Expected name %s for %s, got %s", expectedName, dev.CanonicalEmail(), dev.DisplayName)
+			}
+		} else {
+			t.Errorf("Unexpected developer email: %s", dev.CanonicalEmail())
 		}
 	}
 }
@@ -209,18 +194,18 @@ func TestBuildPairMatrixWithTeam(t *testing.T) {
 		},
 	}
 	
-	matrix, _, devs, _, _ := pairing.BuildPairMatrix(teamObj, commits, true)
+	matrix, _, developers := pairing.BuildPairMatrix(teamObj, commits, true)
 	
 	// Should only include team members
-	if len(devs) != 2 {
-		t.Errorf("Expected 2 team members, got %d: %v", len(devs), devs)
+	if len(developers) != 2 {
+		t.Errorf("Expected 2 team members, got %d: %v", len(developers), developers)
 	}
 	
 	// Should have Alice and Bob
-	expectedDevs := []string{"alice@example.com", "bob@example.com"}
-	for i, expectedDev := range expectedDevs {
-		if devs[i] != expectedDev {
-			t.Errorf("Expected developer %s at index %d, got %s", expectedDev, i, devs[i])
+	expectedEmails := []string{"alice@example.com", "bob@example.com"}
+	for i, expectedEmail := range expectedEmails {
+		if developers[i].CanonicalEmail() != expectedEmail {
+			t.Errorf("Expected developer %s at index %d, got %s", expectedEmail, i, developers[i].CanonicalEmail())
 		}
 	}
 	
@@ -262,11 +247,11 @@ func TestBuildPairMatrixMultipleEmailsPerDeveloper(t *testing.T) {
 		},
 	}
 	
-	matrix, _, devs, _, _ := pairing.BuildPairMatrix(teamObj, commits, true)
+	matrix, _, developers := pairing.BuildPairMatrix(teamObj, commits, true)
 	
 	// Should consolidate Alice's emails to primary
-	if len(devs) != 2 {
-		t.Errorf("Expected 2 developers, got %d: %v", len(devs), devs)
+	if len(developers) != 2 {
+		t.Errorf("Expected 2 developers, got %d: %v", len(developers), developers)
 	}
 	
 	// Should have both commits count toward the same pair
@@ -289,7 +274,7 @@ func TestBuildPairMatrixThreeWayPairing(t *testing.T) {
 		},
 	}
 	
-	matrix, _, devs, _, _ := pairing.BuildPairMatrix(emptyTeam, commits, false)
+	matrix, _, developers := pairing.BuildPairMatrix(emptyTeam, commits, false)
 	
 	// Three-way pairing should create 3 pairs: A-B, A-C, B-C
 	if matrix.Len() != 3 {
@@ -311,8 +296,8 @@ func TestBuildPairMatrixThreeWayPairing(t *testing.T) {
 	}
 	
 	// Should have 3 developers
-	if len(devs) != 3 {
-		t.Errorf("Expected 3 developers, got %d", len(devs))
+	if len(developers) != 3 {
+		t.Errorf("Expected 3 developers, got %d", len(developers))
 	}
 }
 
@@ -342,7 +327,7 @@ func TestBuildPairMatrixSamePairMultipleDays(t *testing.T) {
 		},
 	}
 	
-	matrix, recencyMatrix, _, _, _ := pairing.BuildPairMatrix(emptyTeam, commits, false)
+	matrix, recencyMatrix, _ := pairing.BuildPairMatrix(emptyTeam, commits, false)
 	
 	// Should count as 2 separate pairing days
 	count := matrix.Count("alice@example.com", "bob@example.com")
@@ -374,7 +359,7 @@ func TestBuildPairMatrixConsistentPairOrdering(t *testing.T) {
 		},
 	}
 	
-	matrix, _, _, _, _ := pairing.BuildPairMatrix(emptyTeam, commits, false)
+	matrix, _, _ := pairing.BuildPairMatrix(emptyTeam, commits, false)
 	
 	// Should work regardless of order in commit
 	count1 := matrix.Count("alice@example.com", "bob@example.com")

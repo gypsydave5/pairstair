@@ -75,7 +75,7 @@ func (m *Matrix) Len() int {
 }
 
 // BuildPairMatrix constructs a pair matrix from the commits and team data
-func BuildPairMatrix(team team.Team, commits []git.Commit, useTeam bool) (*Matrix, *RecencyMatrix, []string, map[string]string, map[string]string) {
+func BuildPairMatrix(team team.Team, commits []git.Commit, useTeam bool) (*Matrix, *RecencyMatrix, []git.Developer) {
 	// Maps to track emails and names
 	emailToName := make(map[string]string)
 	emailToPrimaryEmail := make(map[string]string)
@@ -179,10 +179,46 @@ func BuildPairMatrix(team team.Team, commits []git.Commit, useTeam bool) (*Matri
 		}
 	}
 
-	// Build list of developers
-	devs := make([]string, 0, len(devsSet))
-	for d := range devsSet {
-		devs = append(devs, d)
+	// Build list of developers as Developer objects
+	emailToDevs := make(map[string]git.Developer)
+	
+	// First, add developers from commits
+	for email := range devsSet {
+		// Try to find the developer info from the commits or team
+		var dev git.Developer
+		if useTeam {
+			// For team mode, use team information
+			if name, exists := emailToName[email]; exists {
+				// Get all emails for this developer from team
+				allEmails := []string{email}
+				for teamEmail, primaryEmail := range emailToPrimaryEmail {
+					if primaryEmail == email && teamEmail != email {
+						allEmails = append(allEmails, teamEmail)
+					}
+				}
+				dev = git.Developer{
+					DisplayName:     name,
+					EmailAddresses:  allEmails,
+					AbbreviatedName: makeAbbreviatedName(name),
+				}
+			} else {
+				// Fallback: create from email
+				dev = git.NewDeveloper(email)
+			}
+		} else {
+			// For non-team mode, use the display name we captured from commits
+			if name, exists := emailToName[email]; exists && name != "" {
+				dev = git.Developer{
+					DisplayName:     name,
+					EmailAddresses:  []string{email},
+					AbbreviatedName: makeAbbreviatedName(name),
+				}
+			} else {
+				// Fallback: create from email
+				dev = git.NewDeveloper(email)
+			}
+		}
+		emailToDevs[email] = dev
 	}
 
 	// Add any team members not found in commits
@@ -192,14 +228,30 @@ func BuildPairMatrix(team team.Team, commits []git.Commit, useTeam bool) (*Matri
 			if len(emails) > 0 {
 				primaryEmail := emails[0]
 				if _, ok := devsSet[primaryEmail]; !ok {
-					devs = append(devs, primaryEmail)
+					// Extract name from team member string
+					name := extractNameFromTeamMember(tm)
+					dev := git.Developer{
+						DisplayName:     name,
+						EmailAddresses:  emails,
+						AbbreviatedName: makeAbbreviatedName(name),
+					}
+					emailToDevs[primaryEmail] = dev
 				}
 			}
 		}
 	}
-	sort.Strings(devs)
 
-	shortLabels := makeShortLabelsWithNames(devs, emailToName)
+	// Convert to sorted slice
+	var devEmails []string
+	for email := range emailToDevs {
+		devEmails = append(devEmails, email)
+	}
+	sort.Strings(devEmails)
+
+	devs := make([]git.Developer, len(devEmails))
+	for i, email := range devEmails {
+		devs[i] = emailToDevs[email]
+	}
 
 	// Build final matrix and recency matrix
 	matrix := NewMatrix()
@@ -226,7 +278,38 @@ func BuildPairMatrix(team team.Team, commits []git.Commit, useTeam bool) (*Matri
 			}
 		}
 	}
-	return matrix, recencyMatrix, devs, shortLabels, emailToName
+	return matrix, recencyMatrix, devs
+}
+
+// makeAbbreviatedName creates initials from a full name, similar to the git package's shortName
+func makeAbbreviatedName(name string) string {
+	if name == "" {
+		return "??"
+	}
+	
+	words := strings.Fields(name)
+	if len(words) == 0 {
+		return "??"
+	}
+
+	initials := make([]string, len(words))
+	for i, word := range words {
+		if len(word) > 0 {
+			initials[i] = strings.ToUpper(string(word[0]))
+		} else {
+			initials[i] = "?"
+		}
+	}
+
+	return strings.Join(initials, "")
+}
+
+// extractNameFromTeamMember extracts the display name from a team member string like "Alice Smith <alice@example.com>"
+func extractNameFromTeamMember(member string) string {
+	if idx := strings.Index(member, "<"); idx >= 0 {
+		return strings.TrimSpace(member[:idx])
+	}
+	return strings.TrimSpace(member)
 }
 
 // makeShortLabelsWithNames builds short labels for each developer, preferring name if available

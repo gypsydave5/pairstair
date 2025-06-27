@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gypsydave5/pairstair/internal/git"
 	"github.com/gypsydave5/pairstair/internal/output"
 	"github.com/gypsydave5/pairstair/internal/pairing"
 )
@@ -57,16 +58,10 @@ func TestPrintMatrixCLI(t *testing.T) {
 	// Create test data - just test with empty matrix
 	matrix := pairing.NewMatrix()
 	
-	devs := []string{"alice@example.com", "bob@example.com", "charlie@example.com"}
-	shortLabels := map[string]string{
-		"alice@example.com":   "Alice",
-		"bob@example.com":     "Bob",
-		"charlie@example.com": "Char",
-	}
-	emailToName := map[string]string{
-		"alice@example.com":   "Alice Smith",
-		"bob@example.com":     "Bob Jones",
-		"charlie@example.com": "Charlie Brown",
+	developers := []git.Developer{
+		git.NewDeveloper("Alice Smith <alice@example.com>"),
+		git.NewDeveloper("Bob Jones <bob@example.com>"),
+		git.NewDeveloper("Charlie Brown <charlie@example.com>"),
 	}
 
 	// Test that PrintMatrixCLI function exists and can be called
@@ -77,16 +72,11 @@ func TestPrintMatrixCLI(t *testing.T) {
 				t.Errorf("PrintMatrixCLI panicked: %v", r)
 			}
 		}()
-		output.PrintMatrixCLI(matrix, devs, shortLabels, emailToName)
+		output.PrintMatrixCLI(matrix, developers)
 	})
 }
 
 func TestPrintRecommendationsCLI(t *testing.T) {
-	shortLabels := map[string]string{
-		"alice@example.com": "Alice",
-		"bob@example.com":   "Bob",
-	}
-
 	tests := []struct {
 		name            string
 		recommendations []output.Recommendation
@@ -142,7 +132,7 @@ func TestPrintRecommendationsCLI(t *testing.T) {
 					t.Errorf("PrintRecommendationsCLI panicked: %v", r)
 				}
 			}()
-			output.PrintRecommendationsCLI(tt.recommendations, shortLabels, tt.strategy)
+			output.PrintRecommendationsCLI(tt.recommendations, tt.strategy)
 		})
 	}
 }
