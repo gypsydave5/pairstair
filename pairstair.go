@@ -8,6 +8,7 @@ import (
 	"runtime/debug"
 
 	"github.com/gypsydave5/pairstair/internal/git"
+	"github.com/gypsydave5/pairstair/internal/pairing"
 	"github.com/gypsydave5/pairstair/internal/team"
 	"github.com/gypsydave5/pairstair/internal/update"
 )
@@ -22,8 +23,16 @@ type Developer = git.Developer
 // Use team package type as the canonical domain type
 type Team = team.Team
 
+// Use pairing package types as the canonical domain types
+type Matrix = pairing.Matrix
+type RecencyMatrix = pairing.RecencyMatrix
+type Pair = pairing.Pair
+
 // NewDeveloper creates a Developer from git package - maintain compatibility
 var NewDeveloper = git.NewDeveloper
+
+// BuildPairMatrix uses pairing package - maintain compatibility
+var BuildPairMatrix = pairing.BuildPairMatrix
 
 // getVersion returns the version string, preferring build info over the constant
 func getVersion() string {

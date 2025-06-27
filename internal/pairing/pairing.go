@@ -1,4 +1,9 @@
-package main
+// Package pairing provides functionality for analyzing developer pairing patterns
+// from git commit history.
+//
+// The package handles pair matrix construction, recency tracking, and developer
+// label generation for visualization and analysis of collaboration patterns.
+package pairing
 
 import (
 	"fmt"
@@ -7,24 +12,30 @@ import (
 	"time"
 
 	"github.com/gypsydave5/pairstair/internal/git"
+	"github.com/gypsydave5/pairstair/internal/team"
 )
 
+// Pair represents a pair of developers identified by their email addresses
 type Pair struct {
 	A, B string
 }
 
+// Matrix tracks how many times each pair of developers has worked together
 type Matrix struct {
 	data map[Pair]int
 }
 
+// RecencyMatrix tracks when each pair of developers last worked together
 type RecencyMatrix struct {
 	data map[Pair]time.Time
 }
 
+// NewMatrix creates a new empty pairing matrix
 func NewMatrix() *Matrix {
 	return &Matrix{data: make(map[Pair]int)}
 }
 
+// NewRecencyMatrix creates a new empty recency matrix
 func NewRecencyMatrix() *RecencyMatrix {
 	return &RecencyMatrix{data: make(map[Pair]time.Time)}
 }
@@ -64,7 +75,7 @@ func (m *Matrix) Len() int {
 }
 
 // BuildPairMatrix constructs a pair matrix from the commits and team data
-func BuildPairMatrix(team Team, commits []Commit, useTeam bool) (*Matrix, *RecencyMatrix, []string, map[string]string, map[string]string) {
+func BuildPairMatrix(team team.Team, commits []git.Commit, useTeam bool) (*Matrix, *RecencyMatrix, []string, map[string]string, map[string]string) {
 	// Maps to track emails and names
 	emailToName := make(map[string]string)
 	emailToPrimaryEmail := make(map[string]string)
@@ -79,10 +90,10 @@ func BuildPairMatrix(team Team, commits []Commit, useTeam bool) (*Matrix, *Recen
 	devsSet := make(map[string]struct{})
 
 	for _, c := range commits {
-		var devsInCommit []Developer
+		var devsInCommit []git.Developer
 		if useTeam {
 			// When using team mode, include commits where any participant is a team member
-			var teamMembers []Developer
+			var teamMembers []git.Developer
 			
 			// Check if author is in team
 			authorEmail := c.Author.CanonicalEmail()
@@ -105,7 +116,7 @@ func BuildPairMatrix(team Team, commits []Commit, useTeam bool) (*Matrix, *Recen
 			
 			devsInCommit = teamMembers
 		} else {
-			devsInCommit = append([]Developer{c.Author}, c.CoAuthors...)
+			devsInCommit = append([]git.Developer{c.Author}, c.CoAuthors...)
 
 			for _, d := range devsInCommit {
 				email := d.CanonicalEmail()
@@ -218,7 +229,7 @@ func BuildPairMatrix(team Team, commits []Commit, useTeam bool) (*Matrix, *Recen
 	return matrix, recencyMatrix, devs, shortLabels, emailToName
 }
 
-// Build short labels for each developer, prefer name if available
+// makeShortLabelsWithNames builds short labels for each developer, preferring name if available
 func makeShortLabelsWithNames(devs []string, emailToName map[string]string) map[string]string {
 	labels := make(map[string]string, len(devs))
 	used := make(map[string]struct{})
@@ -245,7 +256,7 @@ func makeShortLabelsWithNames(devs []string, emailToName map[string]string) map[
 	return labels
 }
 
-// Try to extract initials from an email address
+// initialsFromEmail tries to extract initials from an email address
 func initialsFromEmail(email string) string {
 	at := -1
 	for i, c := range email {
@@ -276,6 +287,7 @@ func initialsFromEmail(email string) string {
 	return "??"
 }
 
+// splitDot splits a string on '.' characters
 func splitDot(s string) []string {
 	var out []string
 	start := 0
@@ -289,7 +301,7 @@ func splitDot(s string) []string {
 	return out
 }
 
-// Try to extract initials from "Name <email>"
+// initialsFromAuthor tries to extract initials from "Name <email>" format
 func initialsFromAuthor(author string) string {
 	name := author
 	if idx := safeIndex(author, "<"); idx > 0 {
@@ -309,7 +321,7 @@ func initialsFromAuthor(author string) string {
 	return initials
 }
 
-// Safe version of strings.Index that returns -1 if not found
+// safeIndex is a safe version of strings.Index that returns -1 if not found
 func safeIndex(s, substr string) int {
 	idx := strings.Index(s, substr)
 	if idx == -1 {
@@ -318,10 +330,12 @@ func safeIndex(s, substr string) int {
 	return idx
 }
 
+// trimSpace trims whitespace from a string
 func trimSpace(s string) string {
 	return strings.TrimSpace(s)
 }
 
+// fields splits a string into fields
 func fields(s string) []string {
 	return strings.Fields(s)
 }
