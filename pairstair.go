@@ -17,24 +17,6 @@ import (
 // Version is the fallback version, overridden by build info when available
 const Version = "0.6.0-dev"
 
-// Use git package types as the canonical domain types
-type Commit = git.Commit
-type Developer = git.Developer
-
-// Use team package type as the canonical domain type
-type Team = team.Team
-
-// Use pairing package types as the canonical domain types
-type Matrix = pairing.Matrix
-type RecencyMatrix = pairing.RecencyMatrix
-type Pair = pairing.Pair
-
-// NewDeveloper creates a Developer from git package - maintain compatibility
-var NewDeveloper = git.NewDeveloper
-
-// BuildPairMatrix uses pairing package - maintain compatibility
-var BuildPairMatrix = pairing.BuildPairMatrix
-
 // getVersion returns the version string, preferring build info over the constant
 func getVersion() string {
 	info, ok := debug.ReadBuildInfo()
@@ -152,7 +134,7 @@ func main() {
 	commits, err := git.GetCommitsSince(config.Window)
 	exitOnError(err, "Error getting git commits")
 
-	matrix, pairRecency, devs, shortLabels, emailToName := BuildPairMatrix(teamObj, commits, useTeam)
+	matrix, pairRecency, devs, shortLabels, emailToName := pairing.BuildPairMatrix(teamObj, commits, useTeam)
 
 	// Generate recommendations based on strategy
 	var recommendations []output.Recommendation

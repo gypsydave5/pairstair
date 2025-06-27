@@ -13,9 +13,9 @@ func TestGetVersion(t *testing.T) {
 		description string
 	}{
 		{
-			name: "fallback to constant when no build info",
-			buildInfo: nil,
-			expected: "0.6.0-dev",
+			name:        "fallback to constant when no build info",
+			buildInfo:   nil,
+			expected:    "0.6.0-dev",
 			description: "Should return the version constant when debug.ReadBuildInfo() fails",
 		},
 		{
@@ -27,7 +27,7 @@ func TestGetVersion(t *testing.T) {
 					{Key: "vcs.modified", Value: "false"},
 				},
 			},
-			expected: "v0.5.0",
+			expected:    "v0.5.0",
 			description: "Should return the git tag when available and not modified",
 		},
 		{
@@ -39,7 +39,7 @@ func TestGetVersion(t *testing.T) {
 					{Key: "vcs.modified", Value: "true"},
 				},
 			},
-			expected: "v0.5.0-dirty",
+			expected:    "v0.5.0-dirty",
 			description: "Should return tag with -dirty suffix when modified",
 		},
 		{
@@ -50,7 +50,7 @@ func TestGetVersion(t *testing.T) {
 					{Key: "vcs.modified", Value: "false"},
 				},
 			},
-			expected: "0.6.0-dev+abc123de",
+			expected:    "0.6.0-dev+abc123de",
 			description: "Should return version constant + short hash when no tag available",
 		},
 		{
@@ -61,7 +61,7 @@ func TestGetVersion(t *testing.T) {
 					{Key: "vcs.modified", Value: "true"},
 				},
 			},
-			expected: "0.6.0-dev+abc123de-dirty",
+			expected:    "0.6.0-dev+abc123de-dirty",
 			description: "Should return version constant + short hash + dirty when no tag and modified",
 		},
 		{
@@ -72,7 +72,7 @@ func TestGetVersion(t *testing.T) {
 					{Key: "vcs.modified", Value: "false"},
 				},
 			},
-			expected: "0.6.0-dev+abc123",
+			expected:    "0.6.0-dev+abc123",
 			description: "Should handle short commit hashes without truncation",
 		},
 		{
@@ -83,7 +83,7 @@ func TestGetVersion(t *testing.T) {
 				},
 				Settings: []debug.BuildSetting{},
 			},
-			expected: "v0.4.1",
+			expected:    "v0.4.1",
 			description: "Should return module version when available and no VCS info",
 		},
 		{
@@ -94,7 +94,7 @@ func TestGetVersion(t *testing.T) {
 				},
 				Settings: []debug.BuildSetting{},
 			},
-			expected: "0.6.0-dev",
+			expected:    "0.6.0-dev",
 			description: "Should fallback to constant when module version is (devel)",
 		},
 	}
@@ -104,7 +104,7 @@ func TestGetVersion(t *testing.T) {
 			// Test the actual production function with controlled input
 			result := getVersionFromBuildInfo(tt.buildInfo, tt.buildInfo != nil)
 			if result != tt.expected {
-				t.Errorf("getVersionFromBuildInfo() = %q, want %q\nDescription: %s", 
+				t.Errorf("getVersionFromBuildInfo() = %q, want %q\nDescription: %s",
 					result, tt.expected, tt.description)
 			}
 		})
@@ -114,7 +114,7 @@ func TestGetVersion(t *testing.T) {
 func TestVersionFlag(t *testing.T) {
 	// Test that the version flag is properly defined
 	config := parseFlags()
-	
+
 	// Check that Version field exists and defaults to false
 	if config.Version != false {
 		t.Errorf("Version flag should default to false, got %v", config.Version)
@@ -125,7 +125,7 @@ func TestGetVersionWithNoBuildInfo(t *testing.T) {
 	// Test the case where debug.ReadBuildInfo() fails (hasInfo = false)
 	result := getVersionFromBuildInfo(nil, false)
 	expected := "0.6.0-dev"
-	
+
 	if result != expected {
 		t.Errorf("getVersionFromBuildInfo(nil, false) = %q, want %q", result, expected)
 	}

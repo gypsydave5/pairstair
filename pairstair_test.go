@@ -9,6 +9,7 @@ import (
 
 	"github.com/gypsydave5/pairstair/internal/git"
 	"github.com/gypsydave5/pairstair/internal/output"
+	"github.com/gypsydave5/pairstair/internal/pairing"
 	"github.com/gypsydave5/pairstair/internal/team"
 )
 
@@ -21,7 +22,7 @@ Co-authored-by: Bob <bob@example.com>
 `
 	// Use the git package function directly now that types are aliases
 	coauthors := git.ParseCoAuthors(body)
-	
+
 	if len(coauthors) != 2 {
 		t.Fatalf("expected 2 coauthors, got %d", len(coauthors))
 	}
@@ -40,26 +41,26 @@ Co-authored-by: Bob <bob@example.com>
 }
 
 func TestMatrixLogic(t *testing.T) {
-	commits := []Commit{
+	commits := []git.Commit{
 		{
 			Date:      time.Date(2024, 6, 1, 10, 0, 0, 0, time.UTC),
-			Author:    NewDeveloper("Alice <alice@example.com>"),
-			CoAuthors: []Developer{NewDeveloper("Bob <bob@example.com>")},
+			Author:    git.NewDeveloper("Alice <alice@example.com>"),
+			CoAuthors: []git.Developer{git.NewDeveloper("Bob <bob@example.com>")},
 		},
 		{
 			Date:      time.Date(2024, 6, 1, 15, 0, 0, 0, time.UTC),
-			Author:    NewDeveloper("Bob <bob@example.com>"),
-			CoAuthors: []Developer{NewDeveloper("Alice <alice@example.com>")},
+			Author:    git.NewDeveloper("Bob <bob@example.com>"),
+			CoAuthors: []git.Developer{git.NewDeveloper("Alice <alice@example.com>")},
 		},
 		{
 			Date:      time.Date(2024, 6, 2, 10, 0, 0, 0, time.UTC),
-			Author:    NewDeveloper("Alice <alice@example.com>"),
-			CoAuthors: []Developer{NewDeveloper("Carol <carol@example.com>")},
+			Author:    git.NewDeveloper("Alice <alice@example.com>"),
+			CoAuthors: []git.Developer{git.NewDeveloper("Carol <carol@example.com>")},
 		},
 	}
 
 	emptyTeam, _ := team.NewTeam([]string{})
-	matrix, _, _, _, _ := BuildPairMatrix(emptyTeam, commits, false)
+	matrix, _, _, _, _ := pairing.BuildPairMatrix(emptyTeam, commits, false)
 
 	// Alice/Bob should have 1 (same day, only count once)
 	a, b := "alice@example.com", "bob@example.com"
@@ -81,20 +82,20 @@ func TestMultipleEmailsInTeamFile(t *testing.T) {
 	})
 
 	// Commits with Alice using different email addresses
-	commits := []Commit{
+	commits := []git.Commit{
 		{
 			Date:      time.Date(2024, 6, 1, 10, 0, 0, 0, time.UTC),
-			Author:    NewDeveloper("Alice <alice@example.com>"),
-			CoAuthors: []Developer{NewDeveloper("Bob <bob@example.com>")},
+			Author:    git.NewDeveloper("Alice <alice@example.com>"),
+			CoAuthors: []git.Developer{git.NewDeveloper("Bob <bob@example.com>")},
 		},
 		{
 			Date:      time.Date(2024, 6, 2, 10, 0, 0, 0, time.UTC),
-			Author:    NewDeveloper("Alice <alice.work@company.com>"),
-			CoAuthors: []Developer{NewDeveloper("Bob <bob@example.com>")},
+			Author:    git.NewDeveloper("Alice <alice.work@company.com>"),
+			CoAuthors: []git.Developer{git.NewDeveloper("Bob <bob@example.com>")},
 		},
 	}
 
-	matrix, _, devs, _, _ := BuildPairMatrix(teamObj, commits, true)
+	matrix, _, devs, _, _ := pairing.BuildPairMatrix(teamObj, commits, true)
 
 	// We should only have 2 developers (Alice and Bob), not 3
 	if len(devs) != 2 {
@@ -131,16 +132,16 @@ func TestTeamFileCanonicalName(t *testing.T) {
 	})
 
 	// Commits with a different name for Alice
-	commits := []Commit{
+	commits := []git.Commit{
 		{
 			Date:      time.Date(2024, 6, 1, 10, 0, 0, 0, time.UTC),
-			Author:    NewDeveloper("Different Alice <alice@example.com>"),
-			CoAuthors: []Developer{NewDeveloper("Bob <bob@example.com>")},
+			Author:    git.NewDeveloper("Different Alice <alice@example.com>"),
+			CoAuthors: []git.Developer{git.NewDeveloper("Bob <bob@example.com>")},
 		},
 	}
 
 	// Build the matrix with useTeam=true
-	_, _, _, _, emailToName := BuildPairMatrix(teamObj, commits, true)
+	_, _, _, _, emailToName := pairing.BuildPairMatrix(teamObj, commits, true)
 
 	// Check that Alice's name is the canonical one from the team file
 	aliceEmail := "alice@example.com"
@@ -157,19 +158,19 @@ func TestTeamFileCanonicalName(t *testing.T) {
 
 func TestMultipleAuthorsInCommit(t *testing.T) {
 	// A single commit with three authors (one main author and two co-authors)
-	commits := []Commit{
+	commits := []git.Commit{
 		{
 			Date:   time.Date(2024, 6, 1, 10, 0, 0, 0, time.UTC),
-			Author: NewDeveloper("Alice <alice@example.com>"),
-			CoAuthors: []Developer{
-				NewDeveloper("Bob <bob@example.com>"),
-				NewDeveloper("Carol <carol@example.com>"),
+			Author: git.NewDeveloper("Alice <alice@example.com>"),
+			CoAuthors: []git.Developer{
+				git.NewDeveloper("Bob <bob@example.com>"),
+				git.NewDeveloper("Carol <carol@example.com>"),
 			},
 		},
 	}
 
 	emptyTeam, _ := team.NewTeam([]string{})
-	matrix, _, _, _, _ := BuildPairMatrix(emptyTeam, commits, false)
+	matrix, _, _, _, _ := pairing.BuildPairMatrix(emptyTeam, commits, false)
 
 	// With 3 authors, we should have 3 pairs: (Alice, Bob), (Alice, Carol), (Bob, Carol)
 	if matrix.Len() != 3 {
@@ -213,105 +214,105 @@ func TestComprehensivePairMatrix(t *testing.T) {
 	now := time.Date(2024, 6, 15, 12, 0, 0, 0, time.UTC)
 	day := 24 * time.Hour
 
-	commits := []Commit{
+	commits := []git.Commit{
 		// Day 1: Alice pairs with Bob
 		{
 			Date:      now.Add(-14 * day),
-			Author:    NewDeveloper("Alice Smith <alice@example.com>"),
-			CoAuthors: []Developer{NewDeveloper("Bob Jones <bob@example.com>")},
+			Author:    git.NewDeveloper("Alice Smith <alice@example.com>"),
+			CoAuthors: []git.Developer{git.NewDeveloper("Bob Jones <bob@example.com>")},
 		},
 		// Day 2: Bob pairs with Carol
 		{
 			Date:      now.Add(-13 * day),
-			Author:    NewDeveloper("Bob Jones <bjones@company.com>"), // Different email
-			CoAuthors: []Developer{NewDeveloper("Carol Davis <cdavis@company.com>")},
+			Author:    git.NewDeveloper("Bob Jones <bjones@company.com>"), // Different email
+			CoAuthors: []git.Developer{git.NewDeveloper("Carol Davis <cdavis@company.com>")},
 		},
 		// Day 3: Alice pairs with Carol and Dave (three-way pairing)
 		{
 			Date:   now.Add(-12 * day),
-			Author: NewDeveloper("Alice Smith <alice.smith@company.com>"), // Different email
-			CoAuthors: []Developer{
-				NewDeveloper("Carol Davis <carol@example.com>"),
-				NewDeveloper("Dave Wilson <dave@example.com>"),
+			Author: git.NewDeveloper("Alice Smith <alice.smith@company.com>"), // Different email
+			CoAuthors: []git.Developer{
+				git.NewDeveloper("Carol Davis <carol@example.com>"),
+				git.NewDeveloper("Dave Wilson <dave@example.com>"),
 			},
 		},
 		// Day 4: Eve pairs with Frank
 		{
 			Date:      now.Add(-11 * day),
-			Author:    NewDeveloper("Eve Brown <ebrown@company.com>"),
-			CoAuthors: []Developer{NewDeveloper("Frank Thomas <frank@example.com>")},
+			Author:    git.NewDeveloper("Eve Brown <ebrown@company.com>"),
+			CoAuthors: []git.Developer{git.NewDeveloper("Frank Thomas <frank@example.com>")},
 		},
 		// Day 5: Alice pairs with Eve
 		{
 			Date:      now.Add(-10 * day),
-			Author:    NewDeveloper("Alice Smith <asmith@personal.net>"), // Different email
-			CoAuthors: []Developer{NewDeveloper("Eve Brown <eve@example.com>")},
+			Author:    git.NewDeveloper("Alice Smith <asmith@personal.net>"), // Different email
+			CoAuthors: []git.Developer{git.NewDeveloper("Eve Brown <eve@example.com>")},
 		},
 		// Day 6: Dave pairs with Frank
 		{
 			Date:      now.Add(-9 * day),
-			Author:    NewDeveloper("Dave Wilson <dave@example.com>"),
-			CoAuthors: []Developer{NewDeveloper("Frank Thomas <frank@example.com>")},
+			Author:    git.NewDeveloper("Dave Wilson <dave@example.com>"),
+			CoAuthors: []git.Developer{git.NewDeveloper("Frank Thomas <frank@example.com>")},
 		},
 		// Day 7: Bob pairs with Dave
 		{
 			Date:      now.Add(-8 * day),
-			Author:    NewDeveloper("Bob Jones <bob@example.com>"),
-			CoAuthors: []Developer{NewDeveloper("Dave Wilson <dave@example.com>")},
+			Author:    git.NewDeveloper("Bob Jones <bob@example.com>"),
+			CoAuthors: []git.Developer{git.NewDeveloper("Dave Wilson <dave@example.com>")},
 		},
 		// Day 7: Also, Carol pairs with Eve (same day, different pair)
 		{
 			Date:      now.Add(-8 * day),
-			Author:    NewDeveloper("Carol Davis <carol@example.com>"),
-			CoAuthors: []Developer{NewDeveloper("Eve Brown <ebrown@company.com>")},
+			Author:    git.NewDeveloper("Carol Davis <carol@example.com>"),
+			CoAuthors: []git.Developer{git.NewDeveloper("Eve Brown <ebrown@company.com>")},
 		},
 		// Day 8: Alice pairs with Frank
 		{
 			Date:      now.Add(-7 * day),
-			Author:    NewDeveloper("Frank Thomas <frank@example.com>"),
-			CoAuthors: []Developer{NewDeveloper("Alice Smith <alice@example.com>")},
+			Author:    git.NewDeveloper("Frank Thomas <frank@example.com>"),
+			CoAuthors: []git.Developer{git.NewDeveloper("Alice Smith <alice@example.com>")},
 		},
 		// Day 9-10: No commits
 
 		// Day 11: Multiple commits for the same pair on the same day (should count once)
 		{
 			Date:      now.Add(-4 * day),
-			Author:    NewDeveloper("Bob Jones <bob@example.com>"),
-			CoAuthors: []Developer{NewDeveloper("Carol Davis <carol@example.com>")},
+			Author:    git.NewDeveloper("Bob Jones <bob@example.com>"),
+			CoAuthors: []git.Developer{git.NewDeveloper("Carol Davis <carol@example.com>")},
 		},
 		{
 			Date:      now.Add(-4 * day),
-			Author:    NewDeveloper("Carol Davis <cdavis@company.com>"),
-			CoAuthors: []Developer{NewDeveloper("Bob Jones <bjones@company.com>")},
+			Author:    git.NewDeveloper("Carol Davis <cdavis@company.com>"),
+			CoAuthors: []git.Developer{git.NewDeveloper("Bob Jones <bjones@company.com>")},
 		},
 		// Day 12: External person not in the team (should be filtered out with useTeam=true)
 		{
 			Date:      now.Add(-3 * day),
-			Author:    NewDeveloper("External Person <external@othercompany.com>"),
-			CoAuthors: []Developer{NewDeveloper("Alice Smith <alice@example.com>")},
+			Author:    git.NewDeveloper("External Person <external@othercompany.com>"),
+			CoAuthors: []git.Developer{git.NewDeveloper("Alice Smith <alice@example.com>")},
 		},
 		// Day 13: Alice pairs with Bob again
 		{
 			Date:      now.Add(-2 * day),
-			Author:    NewDeveloper("Alice Smith <alice@example.com>"),
-			CoAuthors: []Developer{NewDeveloper("Bob Jones <bob@example.com>")},
+			Author:    git.NewDeveloper("Alice Smith <alice@example.com>"),
+			CoAuthors: []git.Developer{git.NewDeveloper("Bob Jones <bob@example.com>")},
 		},
 		// Day 14: All team members collaborate (large pairing)
 		{
 			Date:   now.Add(-1 * day),
-			Author: NewDeveloper("Alice Smith <alice@example.com>"),
-			CoAuthors: []Developer{
-				NewDeveloper("Bob Jones <bob@example.com>"),
-				NewDeveloper("Carol Davis <carol@example.com>"),
-				NewDeveloper("Dave Wilson <dave@example.com>"),
-				NewDeveloper("Eve Brown <eve@example.com>"),
-				NewDeveloper("Frank Thomas <frank@example.com>"),
+			Author: git.NewDeveloper("Alice Smith <alice@example.com>"),
+			CoAuthors: []git.Developer{
+				git.NewDeveloper("Bob Jones <bob@example.com>"),
+				git.NewDeveloper("Carol Davis <carol@example.com>"),
+				git.NewDeveloper("Dave Wilson <dave@example.com>"),
+				git.NewDeveloper("Eve Brown <eve@example.com>"),
+				git.NewDeveloper("Frank Thomas <frank@example.com>"),
 			},
 		},
 	}
 
 	// Test with team information
-	matrix, _, devs, shortLabels, emailToName := BuildPairMatrix(teamObj, commits, true)
+	matrix, _, devs, shortLabels, emailToName := pairing.BuildPairMatrix(teamObj, commits, true)
 
 	// Check number of developers
 	if len(devs) != 6 {
@@ -378,7 +379,7 @@ func TestComprehensivePairMatrix(t *testing.T) {
 	}
 
 	// Now test without team information
-	matrixNoTeam, _, devsNoTeam, shortLabelsNoTeam, emailToNameNoTeam := BuildPairMatrix(Team{}, commits, false)
+	matrixNoTeam, _, devsNoTeam, shortLabelsNoTeam, emailToNameNoTeam := pairing.BuildPairMatrix(team.Team{}, commits, false)
 
 	// We expect more developers here because without team info, we don't consolidate alternate emails
 	expectedNonTeamDevsCount := 12 // All unique email addresses appear as separate developers
@@ -406,7 +407,7 @@ func TestComprehensivePairMatrix(t *testing.T) {
 	} else {
 		t.Error("external email not found in no-team developers list")
 	}
-	
+
 	// Verify the Alice-External pair exists in the no-team matrix
 	if externalEmail != "" {
 		aliceEmail := "alice@example.com"
@@ -418,26 +419,26 @@ func TestComprehensivePairMatrix(t *testing.T) {
 
 func TestLeastRecentStrategy(t *testing.T) {
 	// Create commits with different dates
-	commits := []Commit{
+	commits := []git.Commit{
 		{
 			Date:      time.Date(2024, 6, 1, 10, 0, 0, 0, time.UTC), // Most recent
-			Author:    NewDeveloper("Alice <alice@example.com>"),
-			CoAuthors: []Developer{NewDeveloper("Bob <bob@example.com>")},
+			Author:    git.NewDeveloper("Alice <alice@example.com>"),
+			CoAuthors: []git.Developer{git.NewDeveloper("Bob <bob@example.com>")},
 		},
 		{
 			Date:      time.Date(2024, 5, 15, 10, 0, 0, 0, time.UTC), // Less recent
-			Author:    NewDeveloper("Alice <alice@example.com>"),
-			CoAuthors: []Developer{NewDeveloper("Carol <carol@example.com>")},
+			Author:    git.NewDeveloper("Alice <alice@example.com>"),
+			CoAuthors: []git.Developer{git.NewDeveloper("Carol <carol@example.com>")},
 		},
 		{
 			Date:      time.Date(2024, 5, 10, 10, 0, 0, 0, time.UTC), // Least recent
-			Author:    NewDeveloper("Bob <bob@example.com>"),
-			CoAuthors: []Developer{NewDeveloper("Dave <dave@example.com>")},
+			Author:    git.NewDeveloper("Bob <bob@example.com>"),
+			CoAuthors: []git.Developer{git.NewDeveloper("Dave <dave@example.com>")},
 		},
 	}
 
 	emptyTeam, _ := team.NewTeam([]string{})
-	matrix, recencyMatrix, devs, _, _ := BuildPairMatrix(emptyTeam, commits, false)
+	matrix, recencyMatrix, devs, _, _ := pairing.BuildPairMatrix(emptyTeam, commits, false)
 
 	// Test recency tracking
 	aliceEmail := "alice@example.com"
@@ -735,7 +736,7 @@ Dave SubTeamOnly <dave@example.com>
 func TestCoAuthorPairingDetection(t *testing.T) {
 	// This test verifies that PairStair correctly identifies pairing from a real commit scenario
 	// where the author email differs from the team file email but co-authored-by includes both devs
-	
+
 	// Create team with Ahmad and Tamara using specific emails
 	// Include both Tamara emails to match the real-world scenario where team files
 	// should list all email variations for each developer
@@ -749,21 +750,21 @@ func TestCoAuthorPairingDetection(t *testing.T) {
 
 	// Create a commit that matches the real scenario:
 	// - Author: Tamara with work email (not in team file)
-	// - Co-authored-by: Ahmad with work email (matches team file)  
+	// - Co-authored-by: Ahmad with work email (matches team file)
 	// - Co-authored-by: Tamara with GitHub email (matches team file)
-	commits := []Commit{
+	commits := []git.Commit{
 		{
 			Date:   time.Date(2025, 6, 26, 16, 33, 50, 0, time.UTC),
-			Author: NewDeveloper("Tamara Jordan <tamara.jordan@springernature.com>"),
-			CoAuthors: []Developer{
-				NewDeveloper("Ahmad Qurbanzada <ahmad.qurbanzada@springernature.com>"),
-				NewDeveloper("Tamara Jordan <20561445+tamj0rd2@users.noreply.github.com>"),
+			Author: git.NewDeveloper("Tamara Jordan <tamara.jordan@springernature.com>"),
+			CoAuthors: []git.Developer{
+				git.NewDeveloper("Ahmad Qurbanzada <ahmad.qurbanzada@springernature.com>"),
+				git.NewDeveloper("Tamara Jordan <20561445+tamj0rd2@users.noreply.github.com>"),
 			},
 		},
 	}
 
 	// Build pair matrix with team enabled
-	matrix, _, devs, _, _ := BuildPairMatrix(teamObj, commits, true)
+	matrix, _, devs, _, _ := pairing.BuildPairMatrix(teamObj, commits, true)
 
 	// Debug: print what we got
 	t.Logf("Developers found: %v", devs)
