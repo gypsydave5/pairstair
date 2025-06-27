@@ -100,6 +100,12 @@ func exitOnError(err error, message string) {
 func main() {
 	config := parseFlags()
 
+	// Check for updates (silent failure, no caching)
+	if updateMessage := checkForUpdate(getVersion()); updateMessage != "" {
+		fmt.Fprintln(os.Stderr, updateMessage)
+		fmt.Fprintln(os.Stderr, "")
+	}
+
 	if config.Version {
 		fmt.Println(getVersion())
 		return
