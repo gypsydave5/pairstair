@@ -2,6 +2,7 @@ package output_test
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -12,9 +13,9 @@ import (
 
 func TestNewRenderer(t *testing.T) {
 	tests := []struct {
-		name           string
-		outputFormat   string
-		expectedType   string
+		name         string
+		outputFormat string
+		expectedType string
 	}{
 		{
 			name:         "CLI renderer for default format",
@@ -57,7 +58,7 @@ func TestNewRenderer(t *testing.T) {
 func TestPrintMatrixCLI(t *testing.T) {
 	// Create test data - just test with empty matrix
 	matrix := pairing.NewMatrix()
-	
+
 	developers := []git.Developer{
 		git.NewDeveloper("Alice Smith <alice@example.com>"),
 		git.NewDeveloper("Bob Jones <bob@example.com>"),
@@ -83,16 +84,16 @@ func TestPrintRecommendationsCLI(t *testing.T) {
 		strategy        string
 	}{
 		{
-			name: "empty recommendations",
+			name:            "empty recommendations",
 			recommendations: []output.Recommendation{},
-			strategy: "least-paired",
+			strategy:        "least-paired",
 		},
 		{
 			name: "single pair recommendation",
 			recommendations: []output.Recommendation{
 				{
-					A: "alice@example.com", 
-					B: "bob@example.com", 
+					A:     "alice@example.com",
+					B:     "bob@example.com",
 					Count: 5,
 				},
 			},
@@ -102,8 +103,8 @@ func TestPrintRecommendationsCLI(t *testing.T) {
 			name: "unpaired developer",
 			recommendations: []output.Recommendation{
 				{
-					A: "alice@example.com", 
-					B: "", 
+					A:     "alice@example.com",
+					B:     "",
 					Count: 0,
 				},
 			},
@@ -113,9 +114,9 @@ func TestPrintRecommendationsCLI(t *testing.T) {
 			name: "least-recent strategy",
 			recommendations: []output.Recommendation{
 				{
-					A: "alice@example.com", 
-					B: "bob@example.com", 
-					Count: 5,
+					A:         "alice@example.com",
+					B:         "bob@example.com",
+					Count:     5,
 					DaysSince: 3,
 					HasPaired: true,
 				},
@@ -162,6 +163,76 @@ func TestRecommendation(t *testing.T) {
 	}
 	if !rec.HasPaired {
 		t.Errorf("Expected HasPaired to be true, got %t", rec.HasPaired)
+	}
+}
+
+func TestRenderHTMLToWriter(t *testing.T) {
+	// Create test data using the existing test pattern
+	alice := git.NewDeveloper("Alice Smith <alice@example.com>")
+	bob := git.NewDeveloper("Bob Jones <bob@example.com>")
+	developers := []git.Developer{alice, bob}
+
+	// Create an empty matrix (we'll populate it via BuildPairMatrix in the future)
+	matrix := pairing.NewMatrix()
+
+	recommendations := []output.Recommendation{
+		{
+			A:         alice.AbbreviatedName,
+			B:         bob.AbbreviatedName,
+			Count:     2,
+			HasPaired: true,
+		},
+	}
+
+	// Test rendering to a string builder
+	var result strings.Builder
+	err := output.RenderHTMLToWriter(&result, matrix, developers, recommendations)
+	if err != nil {
+		t.Fatalf("RenderHTMLToWriter failed: %v", err)
+	}
+
+	htmlOutput := result.String()
+
+	// Verify the HTML contains expected structural elements
+	expectedContents := []string{
+		"<!DOCTYPE html>",
+		"<title>Pair Stair</title>",
+		"<h1>Pair Stair Matrix</h1>",
+		"<h2>Legend</h2>",
+		alice.AbbreviatedName,
+		alice.DisplayName,
+		alice.CanonicalEmail(),
+		bob.AbbreviatedName,
+		bob.DisplayName,
+		bob.CanonicalEmail(),
+		"<h2>Pair Matrix</h2>",
+		"<h2>Pairing Recommendations",
+		"</html>",
+	}
+
+	for _, expected := range expectedContents {
+		if !strings.Contains(htmlOutput, expected) {
+			t.Errorf("HTML output should contain %q, but got:\n%s", expected, htmlOutput)
+		}
+	}
+}
+
+func TestRenderHTMLToWriter_EmptyRecommendations(t *testing.T) {
+	// Test with empty recommendations (too many developers case)
+	alice := git.NewDeveloper("Alice Smith <alice@example.com>")
+	developers := []git.Developer{alice}
+	matrix := pairing.NewMatrix()
+	recommendations := []output.Recommendation{}
+
+	var result strings.Builder
+	err := output.RenderHTMLToWriter(&result, matrix, developers, recommendations)
+	if err != nil {
+		t.Fatalf("RenderHTMLToWriter failed: %v", err)
+	}
+
+	htmlOutput := result.String()
+	if !strings.Contains(htmlOutput, "too many developers") {
+		t.Error("HTML output should mention too many developers when recommendations are empty")
 	}
 }
 

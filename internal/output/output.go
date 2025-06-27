@@ -8,6 +8,7 @@ package output
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"runtime"
@@ -21,11 +22,11 @@ import (
 
 // Recommendation represents a pair of developers who should work together
 type Recommendation struct {
-	A, B         string
-	Count        int
-	LastPaired   time.Time
-	DaysSince    int
-	HasPaired    bool
+	A, B       string
+	Count      int
+	LastPaired time.Time
+	DaysSince  int
+	HasPaired  bool
 }
 
 // OutputRenderer provides a unified interface for different output formats
@@ -101,7 +102,7 @@ func PrintRecommendationsCLI(recommendations []Recommendation, strategy string) 
 	default: // least-paired
 		fmt.Println("Pairing Recommendations (least-paired overall, optimal matching):")
 	}
-	
+
 	for _, rec := range recommendations {
 		if rec.B == "" {
 			fmt.Printf("  %-6s (unpaired)\n", rec.A)
@@ -127,18 +128,27 @@ func PrintRecommendationsCLI(recommendations []Recommendation, strategy string) 
 
 // RenderHTMLAndOpen renders HTML output and opens it in the default browser
 func RenderHTMLAndOpen(matrix *pairing.Matrix, developers []git.Developer, recommendations []Recommendation) error {
-	html := renderHTML(matrix, developers, recommendations)
 	tmpfile, err := os.CreateTemp("", "pairstair-*.html")
 	if err != nil {
 		return err
 	}
 	defer tmpfile.Close()
-	_, err = tmpfile.WriteString(html)
+
+	err = RenderHTMLToWriter(tmpfile, matrix, developers, recommendations)
 	if err != nil {
 		return err
 	}
+
 	// Open in default browser
 	return openBrowser(tmpfile.Name())
+}
+
+// RenderHTMLToWriter renders HTML output to the provided io.Writer
+// This is the testable version of HTML rendering that can write to any Writer
+func RenderHTMLToWriter(w io.Writer, matrix *pairing.Matrix, developers []git.Developer, recommendations []Recommendation) error {
+	html := renderHTML(matrix, developers, recommendations)
+	_, err := w.Write([]byte(html))
+	return err
 }
 
 // renderHTML generates HTML output for the matrix and recommendations
@@ -221,13 +231,13 @@ func openBrowser(path string) error {
 	return cmd.Start()
 }
 
-// RecommendPairsOptimal generates pairing recommendations using greedy approach 
+// RecommendPairsOptimal generates pairing recommendations using greedy approach
 // (minimize total pair count, each dev appears once)
 func RecommendPairsOptimal(developers []git.Developer, matrix *pairing.Matrix) []Recommendation {
 	if len(developers) < 2 {
 		return nil
 	}
-	
+
 	if len(developers) > 10 {
 		return []Recommendation{} // Return empty list for too many developers
 	}
@@ -294,7 +304,7 @@ func RecommendPairsLeastRecent(developers []git.Developer, matrix *pairing.Matri
 	if n < 2 {
 		return nil
 	}
-	
+
 	if n > 10 {
 		return []Recommendation{} // Return empty list for too many developers
 	}
