@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/debug"
+	"time"
 
 	"github.com/gypsydave5/pairstair/internal/git"
 	"github.com/gypsydave5/pairstair/internal/update"
@@ -14,7 +15,15 @@ import (
 // Version is the fallback version, overridden by build info when available
 const Version = "0.5.0-dev"
 
-// convertCommit converts a git.Commit to main.Commit
+// Commit represents a git commit with author and co-author information
+// This uses the main package Developer type for compatibility with existing code
+type Commit struct {
+	Date      time.Time
+	Author    Developer
+	CoAuthors []Developer
+}
+
+// Conversion functions to bridge git package and main package types
 func convertCommit(gc git.Commit) Commit {
 	return Commit{
 		Date:      gc.Date,
@@ -23,7 +32,6 @@ func convertCommit(gc git.Commit) Commit {
 	}
 }
 
-// convertDeveloper converts a git.Developer to main.Developer
 func convertDeveloper(gd git.Developer) Developer {
 	return Developer{
 		DisplayName:     gd.DisplayName,
@@ -32,7 +40,6 @@ func convertDeveloper(gd git.Developer) Developer {
 	}
 }
 
-// convertDevelopers converts a slice of git.Developer to main.Developer
 func convertDevelopers(gds []git.Developer) []Developer {
 	result := make([]Developer, len(gds))
 	for i, gd := range gds {
@@ -41,13 +48,13 @@ func convertDevelopers(gds []git.Developer) []Developer {
 	return result
 }
 
-// getGitCommitsFromPackage is a wrapper around git.GetCommitsSince that converts types
+// getGitCommitsFromPackage wraps git.GetCommitsSince with type conversion
 func getGitCommitsFromPackage(window string) ([]Commit, error) {
 	gitCommits, err := git.GetCommitsSince(window)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	commits := make([]Commit, len(gitCommits))
 	for i, gc := range gitCommits {
 		commits[i] = convertCommit(gc)

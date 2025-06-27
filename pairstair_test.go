@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/gypsydave5/pairstair/internal/git"
 )
 
 func TestParseCoAuthors(t *testing.T) {
@@ -15,7 +17,10 @@ Some commit message
 Co-authored-by: Alice <alice@example.com>
 Co-authored-by: Bob <bob@example.com>
 `
-	coauthors := parseCoAuthors(body)
+	// Use the git package function and convert to main package types
+	gitCoauthors := git.ParseCoAuthors(body)
+	coauthors := convertDevelopers(gitCoauthors)
+	
 	if len(coauthors) != 2 {
 		t.Fatalf("expected 2 coauthors, got %d", len(coauthors))
 	}
