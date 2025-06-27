@@ -198,6 +198,79 @@ When refactoring existing code or creating new functionality, use the establishe
    func parseGitHubResponse(...) // Internal helper
    ```
 
+#### Domain-Driven Type Organization
+
+**Place types in packages that represent their primary domain**
+
+When deciding where to define types, consider which domain they fundamentally belong to:
+
+1. **Types belong in their primary domain package**: Define types where they conceptually fit best:
+   ```go
+   // ✅ Git-related types belong in the git package
+   package git
+   type Commit struct { ... }     // Committing is a git operation
+   type Developer struct { ... }  // Parsed from git logs
+   
+   // ✅ Team-related types belong in the team package  
+   package team
+   type Team struct { ... }       // Team configuration and management
+   
+   // ❌ Avoid: Defining domain types in main package
+   package main
+   type Commit struct { ... }     // Should be in git package
+   ```
+
+2. **Use type aliases for backward compatibility during refactoring**:
+   ```go
+   // ✅ Transition approach: main package imports domain types
+   package main
+   import "github.com/project/internal/git"
+   
+   // Type alias for backward compatibility during refactoring
+   type Commit = git.Commit
+   type Developer = git.Developer
+   ```
+
+3. **Create conversion layers when needed**: During package refactoring, use conversion functions to bridge type systems:
+   ```go
+   // ✅ Temporary conversion during refactoring
+   func convertCommit(gitCommit git.Commit) MainCommit {
+       return MainCommit{
+           Date: gitCommit.Date,
+           Author: convertDeveloper(gitCommit.Author),
+           // ...
+       }
+   }
+   ```
+
+4. **Migrate toward canonical domain types**: The goal is to use domain package types directly:
+   ```go
+   // ✅ End goal: main package uses domain types directly
+   func ProcessCommits(commits []git.Commit) { ... }
+   func AnalyzePairing(team team.Team, commits []git.Commit) { ... }
+   ```
+
+5. **Avoid cross-domain dependencies**: Keep packages focused on their domain:
+   ```go
+   // ✅ Good: git package doesn't depend on team concepts
+   package git
+   func GetCommits() []Commit { ... }
+   
+   // ✅ Good: higher-level coordination in main package
+   package main 
+   func main() {
+       commits := git.GetCommits()
+       team := team.LoadTeam()
+       analysis := pairing.Analyze(team, commits)
+   }
+   ```
+
+This approach ensures that:
+- **Types live where they conceptually belong**
+- **Domain packages remain focused and cohesive**  
+- **Refactoring can be done incrementally**
+- **Dependencies flow in the right direction**
+
 #### External Testing Pattern
 
 **Always use external testing for packages to ensure proper encapsulation**
