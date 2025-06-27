@@ -15,7 +15,7 @@ import (
 )
 
 // Version is the fallback version, overridden by build info when available
-const Version = "0.5.0-dev"
+const Version = "0.6.0-dev"
 
 // Use git package types as the canonical domain types
 type Commit = git.Commit
