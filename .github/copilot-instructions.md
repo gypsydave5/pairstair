@@ -2,6 +2,33 @@
 
 We favour following idiomatic Go practices, using the standard library where possible, and writing clear, maintainable code. Here are some guidelines:
 
+### Feature Development Approach
+
+When the user requests a new feature, follow this collaborative approach:
+
+1. **Interrogate the requirements**: Don't assume you understand the full scope. Ask clarifying questions about:
+   - Specific behavior expected
+   - Edge cases and error scenarios
+   - User interface preferences (CLI flags, output format, etc.)
+   - Performance or compatibility requirements
+
+2. **Provide implementation options**: Present 2-3 different approaches with trade-offs:
+   ```
+   "I see a few ways to implement this:
+   
+   Option 1: Simple approach - [description with pros/cons]
+   Option 2: Robust approach - [description with pros/cons]  
+   Option 3: Full-featured approach - [description with pros/cons]
+   
+   Which direction would you prefer?"
+   ```
+
+3. **Confirm the approach**: Wait for the user to choose before proceeding with implementation.
+
+4. **Follow TDD rigorously**: Write tests first, then implement (see detailed TDD guidelines below).
+
+This collaborative approach ensures we build exactly what the user needs and avoids over-engineering or misunderstood requirements.
+
 ### Functions
 
 Functions should be kept short, ideally no more than ten lines of code. They should do one thing and do it well. If a function is getting too long, consider breaking it down into smaller functions. The name of a function should reveal its purpose clearly.
@@ -51,15 +78,222 @@ When making changes to existing code, follow these critical practices:
    - Ensure existing tests still pass throughout development
    - Add integration tests to verify the feature works end-to-end
 
-### Error Investigation
+### True Test-Driven Development (TDD) Guidelines
 
-When investigating test failures or bugs:
-- Use git to check what changed recently
-- Add temporary debug logging to understand data flow
-- Verify assumptions about data with explicit checks
-- Remove debug code once the issue is resolved
+**Critical: Always follow the Red-Green-Refactor cycle when adding new features**
 
-These practices help maintain code quality and prevent regressions during development.
+#### When the user requests a new feature:
+
+1. **Clarify requirements first**:
+   - Ask detailed questions about the expected behavior
+   - Provide multiple implementation options if appropriate
+   - Discuss edge cases and error scenarios
+   - Confirm the user interface (CLI flags, output format, etc.)
+
+2. **Write failing tests FIRST**:
+   - Create comprehensive test cases that cover the main functionality
+   - Include edge cases and error conditions
+   - Test the actual production code interface, not test helper functions
+   - Ensure tests fail for the right reason (missing functionality, not syntax errors)
+
+3. **Make tests testable by design**:
+   - Separate logic from external dependencies (file I/O, network, etc.)
+   - Use dependency injection where appropriate
+   - Create functions that take parameters instead of accessing globals
+   - Example: `getVersionFromBuildInfo(info, hasInfo)` vs `getVersion()` that calls `debug.ReadBuildInfo()`
+
+4. **Verify tests fail correctly**:
+   - Run tests to confirm they fail as expected
+   - Fix any compilation errors in tests
+   - Ensure failure messages are clear and helpful
+
+5. **Implement minimal production code**:
+   - Write just enough code to make tests pass
+   - Don't over-engineer or add features not covered by tests
+   - Keep functions focused and single-purpose
+
+6. **Verify tests pass**:
+   - Run tests to confirm they now pass
+   - Run all tests to ensure no regressions
+   - Build and manually test if applicable
+
+7. **Refactor if needed**:
+   - Clean up code while keeping tests green
+   - Extract functions, improve naming, etc.
+   - Re-run tests after each refactoring step
+
+#### Common TDD Anti-Patterns to Avoid:
+
+- **❌ Writing test code that duplicates production logic**: Tests should call actual production functions, not reimplementations
+- **❌ Writing production code first**: Always write the test first to drive the design
+- **❌ Writing tests that always pass**: Tests should fail initially and only pass after implementing the feature
+- **❌ Testing implementation details**: Test behavior and interfaces, not internal implementation
+- **❌ Skipping the refactor step**: Clean code is as important as working code
+
+#### Feature Development Process:
+
+1. **Requirements Gathering**:
+   ```
+   User: "Add version support"
+   
+   Copilot: "I'd like to clarify the requirements. Here are some options:
+   
+   Option 1: Simple version constant
+   Option 2: Version constant + --version flag  
+   Option 3: Smart version detection using build info + git tags
+   
+   Questions:
+   - Should it show git commit hashes for development builds?
+   - How should it handle dirty working directories?
+   - What format do you prefer for the version output?"
+   ```
+
+2. **Test Design**:
+   ```
+   "Let me write tests first to define the expected behavior:
+   - Test version flag parsing
+   - Test version detection with different build scenarios
+   - Test fallback behavior when build info unavailable"
+   ```
+
+3. **Implementation**:
+   ```
+   "Now I'll implement the minimal code to make these tests pass,
+   ensuring the production code is testable and focused."
+   ```
+
+### Functions
+
+Functions should be kept short, ideally no more than ten lines of code. They should do one thing and do it well. If a function is getting too long, consider breaking it down into smaller functions. The name of a function should reveal its purpose clearly.
+
+### Structs
+
+Collections of behaviour should be encapsulated in a named struct type. Access to the data should be mostly through methods.
+
+Structs should for the most part be initialized using a public function starting with the word `New`. I.e. for a struct of type `Bob` the function should be called `NewBob`. Other constructor functions like this taking different arguments to construct the same struct are permissible and encouraged.
+
+### Modules
+
+Modules should be used to group related functionality. Each module should have a clear purpose and should not contain unrelated code. The module name should be descriptive of its functionality.
+
+### Tests
+
+Tests should be written for all public functions and methods. Use the `testing` package from the standard library. Tests should be placed in a file ending with `_test.go`. Each test function should start with `Test` followed by the name of the function being tested.
+
+### Test-Driven Development and Change Management
+
+When making changes to existing code, follow these critical practices:
+
+1. **Always establish a baseline first**: Before making any changes, run all tests to ensure they pass. This provides a known good state to compare against.
+
+2. **Run tests after each logical change**: After making modifications, immediately run tests to verify nothing was broken. If tests fail, assume the failure is related to your recent changes unless proven otherwise.
+
+3. **Be extremely careful when updating test code**: When modifying function signatures that require test updates:
+   - Update one test file at a time
+   - Run tests after each file update
+   - Pay special attention to copy-paste errors when updating multiple similar test calls
+   - Avoid introducing new hardcoded values - use existing variables when possible
+
+4. **When tests fail**: 
+   - First check if your changes broke existing functionality
+   - Look for typos or copy-paste errors in test modifications
+   - Don't assume test failures are "pre-existing bugs" without verification
+   - Use git to compare against the last known working state
+
+5. **For function signature changes**: 
+   - Search for all usages before making the change
+   - Update all call sites systematically
+   - Verify each update preserves the original intent
+   - Use the compiler to help find missed updates
+
+6. **When adding new features**:
+   - Write tests for the new functionality first
+   - Ensure existing tests still pass throughout development
+   - Add integration tests to verify the feature works end-to-end
+
+### True Test-Driven Development (TDD) Guidelines
+
+**Critical: Always follow the Red-Green-Refactor cycle when adding new features**
+
+#### When the user requests a new feature:
+
+1. **Clarify requirements first**:
+   - Ask detailed questions about the expected behavior
+   - Provide multiple implementation options if appropriate
+   - Discuss edge cases and error scenarios
+   - Confirm the user interface (CLI flags, output format, etc.)
+
+2. **Write failing tests FIRST**:
+   - Create comprehensive test cases that cover the main functionality
+   - Include edge cases and error conditions
+   - Test the actual production code interface, not test helper functions
+   - Ensure tests fail for the right reason (missing functionality, not syntax errors)
+
+3. **Make tests testable by design**:
+   - Separate logic from external dependencies (file I/O, network, etc.)
+   - Use dependency injection where appropriate
+   - Create functions that take parameters instead of accessing globals
+   - Example: `getVersionFromBuildInfo(info, hasInfo)` vs `getVersion()` that calls `debug.ReadBuildInfo()`
+
+4. **Verify tests fail correctly**:
+   - Run tests to confirm they fail as expected
+   - Fix any compilation errors in tests
+   - Ensure failure messages are clear and helpful
+
+5. **Implement minimal production code**:
+   - Write just enough code to make tests pass
+   - Don't over-engineer or add features not covered by tests
+   - Keep functions focused and single-purpose
+
+6. **Verify tests pass**:
+   - Run tests to confirm they now pass
+   - Run all tests to ensure no regressions
+   - Build and manually test if applicable
+
+7. **Refactor if needed**:
+   - Clean up code while keeping tests green
+   - Extract functions, improve naming, etc.
+   - Re-run tests after each refactoring step
+
+#### Common TDD Anti-Patterns to Avoid:
+
+- **❌ Writing test code that duplicates production logic**: Tests should call actual production functions, not reimplementations
+- **❌ Writing production code first**: Always write the test first to drive the design
+- **❌ Writing tests that always pass**: Tests should fail initially and only pass after implementing the feature
+- **❌ Testing implementation details**: Test behavior and interfaces, not internal implementation
+- **❌ Skipping the refactor step**: Clean code is as important as working code
+
+#### Feature Development Process:
+
+1. **Requirements Gathering**:
+   ```
+   User: "Add version support"
+   
+   Copilot: "I'd like to clarify the requirements. Here are some options:
+   
+   Option 1: Simple version constant
+   Option 2: Version constant + --version flag  
+   Option 3: Smart version detection using build info + git tags
+   
+   Questions:
+   - Should it show git commit hashes for development builds?
+   - How should it handle dirty working directories?
+   - What format do you prefer for the version output?"
+   ```
+
+2. **Test Design**:
+   ```
+   "Let me write tests first to define the expected behavior:
+   - Test version flag parsing
+   - Test version detection with different build scenarios
+   - Test fallback behavior when build info unavailable"
+   ```
+
+3. **Implementation**:
+   ```
+   "Now I'll implement the minimal code to make these tests pass,
+   ensuring the production code is testable and focused."
+   ```
 
 ### Git Commit Message Conventions
 
