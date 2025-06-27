@@ -7,11 +7,53 @@ import (
 	"path/filepath"
 	"runtime/debug"
 
+	"github.com/gypsydave5/pairstair/internal/git"
 	"github.com/gypsydave5/pairstair/internal/update"
 )
 
 // Version is the fallback version, overridden by build info when available
 const Version = "0.5.0-dev"
+
+// convertCommit converts a git.Commit to main.Commit
+func convertCommit(gc git.Commit) Commit {
+	return Commit{
+		Date:      gc.Date,
+		Author:    convertDeveloper(gc.Author),
+		CoAuthors: convertDevelopers(gc.CoAuthors),
+	}
+}
+
+// convertDeveloper converts a git.Developer to main.Developer
+func convertDeveloper(gd git.Developer) Developer {
+	return Developer{
+		DisplayName:     gd.DisplayName,
+		EmailAddresses:  gd.EmailAddresses,
+		AbbreviatedName: gd.AbbreviatedName,
+	}
+}
+
+// convertDevelopers converts a slice of git.Developer to main.Developer
+func convertDevelopers(gds []git.Developer) []Developer {
+	result := make([]Developer, len(gds))
+	for i, gd := range gds {
+		result[i] = convertDeveloper(gd)
+	}
+	return result
+}
+
+// getGitCommitsFromPackage is a wrapper around git.GetCommitsSince that converts types
+func getGitCommitsFromPackage(window string) ([]Commit, error) {
+	gitCommits, err := git.GetCommitsSince(window)
+	if err != nil {
+		return nil, err
+	}
+	
+	commits := make([]Commit, len(gitCommits))
+	for i, gc := range gitCommits {
+		commits[i] = convertCommit(gc)
+	}
+	return commits, nil
+}
 
 // getVersion returns the version string, preferring build info over the constant
 func getVersion() string {
@@ -127,7 +169,7 @@ func main() {
 		}
 	}
 
-	commits, err := getGitCommitsSince(config.Window)
+	commits, err := getGitCommitsFromPackage(config.Window)
 	exitOnError(err, "Error getting git commits")
 
 	matrix, pairRecency, devs, shortLabels, emailToName := BuildPairMatrix(team, commits, useTeam)
