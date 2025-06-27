@@ -5,7 +5,68 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 )
+
+// Version is the fallback version, overridden by build info when available
+const Version = "0.5.0-dev"
+
+// getVersion returns the version string, preferring build info over the constant
+func getVersion() string {
+	info, ok := debug.ReadBuildInfo()
+	return getVersionFromBuildInfo(info, ok)
+}
+
+// getVersionFromBuildInfo extracts version information from build info
+// This function is separated to make it testable
+func getVersionFromBuildInfo(info *debug.BuildInfo, hasInfo bool) string {
+	if hasInfo && info != nil {
+		// Check for git tag in VCS settings
+		var revision, tag string
+		var modified bool
+
+		for _, setting := range info.Settings {
+			switch setting.Key {
+			case "vcs.tag":
+				tag = setting.Value
+			case "vcs.revision":
+				revision = setting.Value
+			case "vcs.modified":
+				modified = setting.Value == "true"
+			}
+		}
+
+		// If we have a clean tag, use it
+		if tag != "" && !modified {
+			return tag
+		}
+
+		// If we have a tag but modified, show tag + dirty
+		if tag != "" && modified {
+			return tag + "-dirty"
+		}
+
+		// If we have a commit hash, show version + short hash
+		if revision != "" {
+			short := revision
+			if len(revision) > 8 {
+				short = revision[:8]
+			}
+			if modified {
+				return fmt.Sprintf("%s+%s-dirty", Version, short)
+			}
+			return fmt.Sprintf("%s+%s", Version, short)
+		}
+
+		// Check if this was built as a module
+		if info.Main.Version != "" && info.Main.Version != "(devel)" {
+			return info.Main.Version
+		}
+	}
+
+	// Fallback to compile-time constant
+	return Version
+}
 
 // Config holds all command-line configuration
 type Config struct {
@@ -13,6 +74,7 @@ type Config struct {
 	Output   string
 	Strategy string
 	Team     string
+	Version  bool
 }
 
 // parseFlags parses command-line flags and returns a Config
@@ -22,6 +84,7 @@ func parseFlags() *Config {
 	flag.StringVar(&config.Output, "output", "cli", "Output format: 'cli' (default) or 'html'")
 	flag.StringVar(&config.Strategy, "strategy", "least-paired", "Recommendation strategy: 'least-paired' (default) or 'least-recent'")
 	flag.StringVar(&config.Team, "team", "", "Sub-team to analyze (e.g. 'frontend', 'backend')")
+	flag.BoolVar(&config.Version, "version", false, "Show version information")
 	flag.Parse()
 	return config
 }
@@ -36,6 +99,11 @@ func exitOnError(err error, message string) {
 
 func main() {
 	config := parseFlags()
+
+	if config.Version {
+		fmt.Println(getVersion())
+		return
+	}
 
 	wd, err := os.Getwd()
 	exitOnError(err, "Error getting working directory")
