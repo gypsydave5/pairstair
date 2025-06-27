@@ -12,25 +12,48 @@ PairStair is a CLI tool for visualizing and optimizing software developer pairin
 
 ## Installation
 
-You need Go installed (version 1.18+ recommended).
+PairStair can be installed through several methods:
 
-### Homebrew
+### Homebrew (macOS)
 
-You can install PairStair using Homebrew with:
+The easiest way to install on macOS:
 
+```bash
+brew tap gypsydave5/pairstair
+brew install pairstair
 ```
-brew install gypsydave5/pairstair/pairstair
-```
 
-### Go install
+This installs a pre-built binary with proper version information.
 
-Alternatively, you can install with Go:
+### Go Install
 
-```sh
+Install directly from source (requires Go 1.21+):
+
+```bash
 go install github.com/gypsydave5/pairstair@latest
 ```
 
 This will install the `pairstair` binary in your `$GOPATH/bin` or `$HOME/go/bin`.
+
+### Manual Download
+
+Download pre-built binaries from the [GitHub Releases page](https://github.com/gypsydave5/pairstair/releases). Available for:
+
+- **Linux**: `amd64`, `arm64`
+- **macOS**: `amd64` (Intel), `arm64` (Apple Silicon)  
+- **Windows**: `amd64`
+
+### Build from Source
+
+For development or custom builds:
+
+```bash
+git clone https://github.com/gypsydave5/pairstair.git
+cd pairstair
+go build -o pairstair .
+```
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for detailed build instructions and development setup.
 
 ## Usage
 
@@ -202,6 +225,43 @@ Pairing Recommendations (least recent collaborations first):
   BD     <-> CT     : never paired
   AE     <-> CT     : last paired 15 days ago
 ```
+
+## Development and Contributing
+
+PairStair welcomes contributions! Whether you're fixing bugs, adding features, or improving documentation, your help is appreciated.
+
+### Quick Start
+
+```bash
+# Clone and build
+git clone https://github.com/gypsydave5/pairstair.git
+cd pairstair
+go build -o pairstair .
+
+# Run tests
+go test -v ./...
+```
+
+### Key Resources
+
+- **[`CONTRIBUTING.md`](CONTRIBUTING.md)** - Complete development guide including:
+  - Build process and CI/CD pipeline
+  - Release workflow and version management
+  - Homebrew tap integration
+  - Testing and TDD guidelines
+  - Code style and conventions
+
+- **[`.github/copilot-instructions.md`](.github/copilot-instructions.md)** - AI assistant guidelines and project conventions
+
+### Release Process
+
+PairStair uses an automated CI/CD pipeline that:
+
+1. **Builds** binaries for multiple platforms with proper version injection
+2. **Creates** GitHub releases with all artifacts  
+3. **Updates** the Homebrew formula automatically via [`gypsydave5/homebrew-pairstair`](https://github.com/gypsydave5/homebrew-pairstair)
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for detailed release procedures.
 
 ## Documentation
 
