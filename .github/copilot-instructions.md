@@ -162,6 +162,155 @@ When making changes to existing code, follow these critical practices:
    ensuring the production code is testable and focused."
    ```
 
+### Critical Process Guidelines for Code Changes
+
+**Essential practices learned from major refactoring work to prevent errors and improve efficiency**
+
+#### Comprehensive Testing Requirements
+
+1. **Always run ALL test types before committing**: Even if acceptance tests pass, unit tests may still fail due to:
+   - Type mismatches or import errors
+   - Function signature changes not reflected in all test files
+   - Copy-paste errors in test updates
+   - Missing test updates after refactoring
+
+2. **Test hierarchy and coverage**:
+   - **Unit tests**: Test individual functions and methods in isolation
+   - **Integration tests**: Test package interactions and data flow
+   - **Acceptance tests**: Test the actual built binary end-to-end
+   - **All must pass**: Don't rely on higher-level tests to catch lower-level issues
+
+3. **Test after each logical change**: Run relevant tests immediately after:
+   - Function signature changes
+   - Type alias removal or addition
+   - Package refactoring
+   - Import statement updates
+
+#### Build Artifact Management
+
+1. **Clean up test artifacts immediately**: Test builds create artifacts that should never be committed:
+   ```bash
+   # Common test artifacts to clean up
+   *.test           # Go test binaries (e.g., pairing.test, git.test)
+   pairstair        # Main application binary
+   coverage.out     # Coverage files
+   ```
+
+2. **Check for artifacts before committing**:
+   - Use `git status` to verify no binaries are staged
+   - Use `find . -name "*.test" -type f` to locate test artifacts
+   - Remove with `rm` or `git rm` if accidentally staged
+   - Update `.gitignore` if new artifact patterns emerge
+
+3. **Automated artifact detection**: Add to pre-commit checks:
+   ```bash
+   # Check for common build artifacts
+   if find . -name "*.test" -type f | grep -q .; then
+       echo "Error: Test binaries found. Clean up before commit."
+       exit 1
+   fi
+   ```
+
+#### Function Signature Refactoring
+
+**When changing function signatures that affect multiple files:**
+
+1. **Identify all usage sites first**:
+   - Use `grep_search` to find all function calls
+   - Use `list_code_usages` for comprehensive reference finding
+   - Include both production code and test files in the search
+
+2. **Update systematically**:
+   - Update production code first, then test files
+   - Update one file at a time, testing after each
+   - Pay special attention to test files with similar function calls
+   - Avoid copy-paste errors by carefully checking each update
+
+3. **Verify compiler catches all issues**:
+   - Run `go build` to catch missing updates
+   - Use compiler errors as a checklist for remaining work
+   - Don't assume all issues are found by tests alone
+
+#### Avoiding Redundant Manual Testing
+
+1. **Leverage acceptance tests**: If comprehensive acceptance tests exist:
+   - They provide end-to-end verification of CLI behavior
+   - Manual binary testing becomes redundant
+   - Focus on ensuring all test types pass instead
+
+2. **When manual testing is needed**:
+   - New features not covered by existing acceptance tests
+   - Complex edge cases that are hard to automate
+   - Performance or resource usage verification
+   - User experience validation for new interfaces
+
+3. **Acceptance test coverage should include**:
+   - All CLI flags and combinations
+   - Different input scenarios (various git repos)
+   - Output format verification
+   - Error handling and edge cases
+
+#### Responding to User Interventions
+
+1. **When users redirect or halt work**:
+   - Immediately stop the current approach
+   - Ask clarifying questions about the new direction
+   - Don't continue with planned steps that may no longer be relevant
+   - Clean up any incomplete changes or artifacts
+
+2. **Process improvement opportunities**:
+   - Reflect on what led to the intervention
+   - Update process guidelines to prevent similar issues
+   - Document lessons learned for future reference
+   - Adjust approach based on user feedback
+
+3. **Communication during complex changes**:
+   - Provide clear progress updates
+   - Explain what each major step accomplishes
+   - Ask for confirmation before proceeding with large changes
+   - Highlight potential risks or breaking changes
+
+#### Error Prevention and Recovery
+
+1. **Establish baseline before major changes**:
+   - Ensure all tests pass in current state
+   - Create a git checkpoint with `git add . && git commit`
+   - Document the known-good state for reference
+
+2. **Incremental verification**:
+   - Test after each logical change
+   - Don't accumulate multiple changes before testing
+   - Use `git add -p` to stage and test small chunks
+   - Commit working increments regularly
+
+3. **Recovery strategies**:
+   - Use `git diff` to see what changed when tests fail
+   - Use `git checkout` to revert problematic changes
+   - Compare against last known working state
+   - Fix one issue at a time rather than multiple at once
+
+#### Code Quality During Refactoring
+
+1. **Avoid shortcuts under pressure**:
+   - Don't skip test updates to "save time"
+   - Don't commit failing tests with plans to "fix later"
+   - Don't leave build artifacts for "cleanup later"
+   - Address issues immediately when discovered
+
+2. **Maintain code consistency**:
+   - Use domain types directly rather than aliases
+   - Follow established patterns in the codebase
+   - Update documentation alongside code changes
+   - Ensure consistent naming and conventions
+
+3. **Refactoring best practices**:
+   - Remove deprecated code paths completely
+   - Update all related documentation
+   - Clean up unused imports and variables
+   - Verify all TODOs and FIXMEs are addressed
+
+**Remember**: These practices prevent the accumulation of technical debt and reduce the likelihood of subtle bugs. Time spent on proper process pays dividends in code quality and maintainability.
+
 ### Package Structure and Organization
 
 **Follow consistent patterns for creating well-organized, maintainable packages**
@@ -505,20 +654,30 @@ Maintain a clean repository by following these practices:
 
 1. **Never commit binary files**: Go binaries, executables, and compiled artifacts should never be committed to version control
    - The main binary (e.g., `pairstair`) should be listed in `.gitignore`
+   - Test binaries (e.g., `*.test` files) should be cleaned up immediately after testing
    - Use `go build` to create binaries locally as needed
    - If you notice a binary has been accidentally committed, immediately remove it with `git rm <binary>` and update `.gitignore`
 
-2. **Review staged changes before committing**: Always check `git status` and `git diff --staged` before committing
+2. **Clean up test artifacts promptly**: Go tests create binary artifacts that must be removed:
+   - Use `find . -name "*.test" -type f` to locate test binaries
+   - Remove with `rm *.test` or similar commands
+   - Check for artifacts before every commit with `git status`
+   - Common artifacts: `pairing.test`, `git.test`, `output.test`, main binary name
+
+3. **Review staged changes before committing**: Always check `git status` and `git diff --staged` before committing
    - Look for accidentally staged binary files, temporary files, or IDE artifacts
    - Ensure only intended source code changes are included
+   - Pay special attention after running tests that create binaries
 
-3. **Keep .gitignore comprehensive**: The `.gitignore` file should include:
+4. **Keep .gitignore comprehensive**: The `.gitignore` file should include:
    - IDE files and directories (`.idea/`, `.vscode/`, etc.)
    - Go binaries (the main executable name)
+   - Test binaries (`*.test`)
    - Temporary files and build artifacts
+   - Coverage files (`coverage.out`, `*.cover`)
    - OS-specific files (`.DS_Store`, `Thumbs.db`, etc.)
 
-4. **Immediate correction**: If you notice binary files or other inappropriate content has been committed:
+5. **Immediate correction**: If you notice binary files or other inappropriate content has been committed:
    - Remove it immediately with `git rm <file>`
    - Add appropriate entries to `.gitignore`
    - Commit the cleanup with a `-s-` prefix message
