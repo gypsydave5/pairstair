@@ -1,7 +1,6 @@
 package update_test
 
 import (
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -13,7 +12,7 @@ func TestCheckForUpdates(t *testing.T) {
 	tests := []struct {
 		name           string
 		currentVersion string
-		mockResponse   []update.Release
+		mockResponse   string
 		mockStatusCode int
 		expectMessage  bool
 		expectedMsg    string
@@ -21,10 +20,10 @@ func TestCheckForUpdates(t *testing.T) {
 		{
 			name:           "newer version available",
 			currentVersion: "v0.5.0",
-			mockResponse: []update.Release{
-				{TagName: "v0.6.0", Draft: false},
-				{TagName: "v0.5.0", Draft: false},
-			},
+			mockResponse: `[
+				{"tag_name": "v0.6.0", "draft": false},
+				{"tag_name": "v0.5.0", "draft": false}
+			]`,
 			mockStatusCode: 200,
 			expectMessage:  true,
 			expectedMsg:    "A newer version of pairstair is available: v0.6.0 (you have v0.5.0)",
@@ -32,10 +31,10 @@ func TestCheckForUpdates(t *testing.T) {
 		{
 			name:           "current version is latest",
 			currentVersion: "v0.6.0",
-			mockResponse: []update.Release{
-				{TagName: "v0.6.0", Draft: false},
-				{TagName: "v0.5.0", Draft: false},
-			},
+			mockResponse: `[
+				{"tag_name": "v0.6.0", "draft": false},
+				{"tag_name": "v0.5.0", "draft": false}
+			]`,
 			mockStatusCode: 200,
 			expectMessage:  false,
 			expectedMsg:    "",
@@ -43,9 +42,9 @@ func TestCheckForUpdates(t *testing.T) {
 		{
 			name:           "development version newer than latest",
 			currentVersion: "0.7.0-dev+abc1234",
-			mockResponse: []update.Release{
-				{TagName: "v0.6.0", Draft: false},
-			},
+			mockResponse: `[
+				{"tag_name": "v0.6.0", "draft": false}
+			]`,
 			mockStatusCode: 200,
 			expectMessage:  false,
 			expectedMsg:    "",
@@ -53,7 +52,7 @@ func TestCheckForUpdates(t *testing.T) {
 		{
 			name:           "API failure returns empty string",
 			currentVersion: "v0.5.0",
-			mockResponse:   nil,
+			mockResponse:   "",
 			mockStatusCode: 500,
 			expectMessage:  false,
 			expectedMsg:    "",
@@ -61,7 +60,7 @@ func TestCheckForUpdates(t *testing.T) {
 		{
 			name:           "empty response returns empty string",
 			currentVersion: "v0.5.0",
-			mockResponse:   []update.Release{},
+			mockResponse:   "[]",
 			mockStatusCode: 200,
 			expectMessage:  false,
 			expectedMsg:    "",
@@ -69,10 +68,10 @@ func TestCheckForUpdates(t *testing.T) {
 		{
 			name:           "draft releases are ignored",
 			currentVersion: "v0.5.0",
-			mockResponse: []update.Release{
-				{TagName: "v0.7.0", Draft: true},  // This should be ignored
-				{TagName: "v0.6.0", Draft: false}, // This is the latest non-draft
-			},
+			mockResponse: `[
+				{"tag_name": "v0.7.0", "draft": true},
+				{"tag_name": "v0.6.0", "draft": false}
+			]`,
 			mockStatusCode: 200,
 			expectMessage:  true,
 			expectedMsg:    "A newer version of pairstair is available: v0.6.0 (you have v0.5.0)",
@@ -84,8 +83,8 @@ func TestCheckForUpdates(t *testing.T) {
 			// Create mock server
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(tt.mockStatusCode)
-				if tt.mockResponse != nil {
-					json.NewEncoder(w).Encode(tt.mockResponse)
+				if tt.mockResponse != "" {
+					w.Write([]byte(tt.mockResponse))
 				}
 			}))
 			defer server.Close()

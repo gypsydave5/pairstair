@@ -9,8 +9,8 @@ import (
 	"time"
 )
 
-// Release represents a GitHub release from the API
-type Release struct {
+// release represents a GitHub release from the API (internal use only)
+type release struct {
 	TagName string `json:"tag_name"`
 	Draft   bool   `json:"draft"`
 }
@@ -35,7 +35,7 @@ func CheckForUpdateWithURL(currentVersion, url string) string {
 		return "" // Silent failure
 	}
 
-	var releases []Release
+	var releases []release
 	if err := json.NewDecoder(resp.Body).Decode(&releases); err != nil {
 		return "" // Silent failure
 	}
