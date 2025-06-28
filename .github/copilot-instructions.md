@@ -90,34 +90,47 @@ When making changes to existing code, follow these critical practices:
    - Discuss edge cases and error scenarios
    - Confirm the user interface (CLI flags, output format, etc.)
 
-2. **Write failing tests FIRST**:
+2. **Write acceptance tests FIRST**:
+   - **Start with end-to-end acceptance tests** that verify the complete user experience
+   - Use the actual binary and test real command-line behavior
+   - Test the feature as users will actually interact with it
+   - Example: For triple recommendations, write tests that check for `<->` notation in CLI output
+   - Acceptance tests should fail initially and guide the implementation
+
+3. **Write failing unit tests SECOND**:
    - Create comprehensive test cases that cover the main functionality
    - Include edge cases and error conditions
    - Test the actual production code interface, not test helper functions
    - Ensure tests fail for the right reason (missing functionality, not syntax errors)
 
-3. **Make tests testable by design**:
+3. **Write failing unit tests SECOND**:
+   - Create comprehensive test cases that cover the main functionality
+   - Include edge cases and error conditions
+   - Test the actual production code interface, not test helper functions
+   - Ensure tests fail for the right reason (missing functionality, not syntax errors)
+
+4. **Make tests testable by design**:
    - Separate logic from external dependencies (file I/O, network, etc.)
    - Use dependency injection where appropriate
    - Create functions that take parameters instead of accessing globals
    - Example: `getVersionFromBuildInfo(info, hasInfo)` vs `getVersion()` that calls `debug.ReadBuildInfo()`
 
-4. **Verify tests fail correctly**:
+5. **Verify tests fail correctly**:
    - Run tests to confirm they fail as expected
    - Fix any compilation errors in tests
    - Ensure failure messages are clear and helpful
 
-5. **Implement minimal production code**:
+6. **Implement minimal production code**:
    - Write just enough code to make tests pass
    - Don't over-engineer or add features not covered by tests
    - Keep functions focused and single-purpose
 
-6. **Verify tests pass**:
+7. **Verify tests pass**:
    - Run tests to confirm they now pass
    - Run all tests to ensure no regressions
    - **Trust passing tests - avoid redundant manual verification if acceptance tests exist**
 
-7. **Refactor if needed**:
+8. **Refactor if needed**:
    - Clean up code while keeping tests green
    - Extract functions, improve naming, etc.
    - Re-run tests after each refactoring step
@@ -150,7 +163,12 @@ When making changes to existing code, follow these critical practices:
 
 2. **Test Design**:
    ```
-   "Let me write tests first to define the expected behavior:
+   "Let me write acceptance tests first to define the expected user experience:
+   - Test actual CLI commands and output format
+   - Test the complete user workflow end-to-end
+   - Verify the feature works as users will interact with it
+   
+   Then write unit tests for the implementation details:
    - Test version flag parsing
    - Test version detection with different build scenarios
    - Test fallback behavior when build info unavailable"
@@ -161,6 +179,59 @@ When making changes to existing code, follow these critical practices:
    "Now I'll implement the minimal code to make these tests pass,
    ensuring the production code is testable and focused."
    ```
+
+### Acceptance Test Requirements
+
+**Always write acceptance tests BEFORE implementing user-facing features**
+
+#### When to Write Acceptance Tests:
+- **CLI features**: New flags, commands, or output formats
+- **User workflows**: Complete end-to-end functionality
+- **Output changes**: Modified display formats or new information
+- **Behavior changes**: Any change that affects how users interact with the tool
+
+#### Acceptance Test Characteristics:
+1. **Test the actual binary**: Use `go build` and execute the real program
+2. **Test real command-line usage**: Use actual flags and arguments
+3. **Verify complete output**: Check exact text, formatting, and behavior
+4. **Test error scenarios**: Invalid inputs, missing files, etc.
+5. **Use realistic test data**: Create git repositories with real commit history
+
+#### Example Pattern for New Features:
+```go
+// Test for triple recommendations feature
+func TestTripleRecommendations(t *testing.T) {
+    // Setup: Create git repo with 5 developers (odd number)
+    repoDir := setupGitRepoWithOddDevelopers(t)
+    defer os.RemoveAll(repoDir)
+    
+    // Execute: Run pairstair with strategy
+    cmd := exec.Command("./pairstair", "--strategy=least-paired")
+    cmd.Dir = repoDir
+    output, err := cmd.CombinedOutput()
+    
+    // Verify: Check for triple notation in output
+    if !strings.Contains(string(output), "<->") {
+        t.Errorf("Expected triple notation '<->' in output")
+    }
+    
+    // Verify: Ensure exactly one triple and pairs for the rest
+    lines := strings.Split(string(output), "\n")
+    tripleCount := countTriples(lines)
+    if tripleCount != 1 {
+        t.Errorf("Expected exactly 1 triple, got %d", tripleCount)
+    }
+}
+```
+
+#### Integration with TDD Cycle:
+1. **Red**: Write failing acceptance test that defines complete user experience
+2. **Red**: Write failing unit tests for implementation details  
+3. **Green**: Implement minimal code to make tests pass
+4. **Green**: Verify acceptance test passes end-to-end
+5. **Refactor**: Clean up while keeping all tests green
+
+**Remember**: Acceptance tests guide the overall feature design, while unit tests guide the implementation details.
 
 ### Critical Process Guidelines for Code Changes
 
@@ -233,22 +304,22 @@ When making changes to existing code, follow these critical practices:
 
 #### Avoiding Redundant Manual Testing
 
-**Critical principle: Trust your test suite and avoid duplicating what tests already verify**
+**Critical principle: Trust your test suite and avoid duplicating what acceptance tests already verify**
 
 1. **Leverage acceptance tests**: If comprehensive acceptance tests exist:
    - They provide end-to-end verification of CLI behavior
    - Manual binary testing becomes redundant and wastes time
    - Focus on ensuring all test types pass instead
-   - **If `go test ./...` passes, have confidence the functionality works**
+   - **If acceptance tests pass, have confidence the functionality works as users will experience it**
 
 2. **Don't duplicate test verification manually**:
    - ❌ **Avoid**: Running `go test ./...`, then building binary, then manually testing same functionality
-   - ✅ **Do**: Run `go test ./...`, trust it passes, move on
+   - ✅ **Do**: Run `go test ./...`, trust acceptance tests, move on
    - ❌ **Avoid**: Testing CLI flags manually when acceptance tests cover them
-   - ✅ **Do**: Add missing test coverage if you feel manual testing is needed
+   - ✅ **Do**: Add missing acceptance test coverage if you feel manual testing is needed
 
 3. **When manual testing is appropriate**:
-   - New features not yet covered by existing acceptance tests
+   - New features not yet covered by acceptance tests (write the tests first!)
    - Complex edge cases that are hard to automate  
    - Performance or resource usage verification
    - User experience validation for new interfaces
@@ -260,7 +331,7 @@ When making changes to existing code, follow these critical practices:
    - Output format verification
    - Error handling and edge cases
 
-**Remember**: Time spent on redundant manual verification is time not spent on valuable development work. Trust your test suite and focus effort where it adds unique value.
+**Remember**: Time spent on redundant manual verification is time not spent on valuable development work. Write comprehensive acceptance tests first, then trust them completely.
 
 #### Responding to User Interventions
 
