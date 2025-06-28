@@ -54,6 +54,30 @@ func (m *Matrix) Count(a, b string) int {
 	return m.data[Pair{A: a, B: b}]
 }
 
+// CountByDeveloper returns the count of times a pair of developers has worked together
+func (m *Matrix) CountByDeveloper(a, b git.Developer) int {
+	return m.Count(a.CanonicalEmail(), b.CanonicalEmail())
+}
+
+// Add increments the count for a pair of developers
+func (m *Matrix) Add(a, b string) {
+	if a == b {
+		return // Skip self-pairs
+	}
+
+	// Ensure consistent ordering
+	if a > b {
+		a, b = b, a
+	}
+
+	m.data[Pair{A: a, B: b}]++
+}
+
+// AddByDeveloper increments the count for a pair of developers
+func (m *Matrix) AddByDeveloper(a, b git.Developer) {
+	m.Add(a.CanonicalEmail(), b.CanonicalEmail())
+}
+
 // LastPaired returns the last time a pair worked together
 func (r *RecencyMatrix) LastPaired(a, b string) (time.Time, bool) {
 	if a == b {
@@ -67,6 +91,33 @@ func (r *RecencyMatrix) LastPaired(a, b string) (time.Time, bool) {
 
 	lastTime, exists := r.data[Pair{A: a, B: b}]
 	return lastTime, exists
+}
+
+// LastPairedByDeveloper returns the last time a pair of developers worked together
+func (r *RecencyMatrix) LastPairedByDeveloper(a, b git.Developer) (time.Time, bool) {
+	return r.LastPaired(a.CanonicalEmail(), b.CanonicalEmail())
+}
+
+// Record records the pairing time for two developers
+func (r *RecencyMatrix) Record(a, b string, date time.Time) {
+	if a == b {
+		return // Skip self-pairs
+	}
+
+	// Ensure consistent ordering
+	if a > b {
+		a, b = b, a
+	}
+
+	pair := Pair{A: a, B: b}
+	if existing, exists := r.data[pair]; !exists || date.After(existing) {
+		r.data[pair] = date
+	}
+}
+
+// RecordByDeveloper records the pairing time for two developers
+func (r *RecencyMatrix) RecordByDeveloper(a, b git.Developer, date time.Time) {
+	r.Record(a.CanonicalEmail(), b.CanonicalEmail(), date)
 }
 
 // Len returns the number of pairs in the matrix

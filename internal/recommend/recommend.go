@@ -63,7 +63,7 @@ func generateLeastPaired(developers []git.Developer, matrix *pairing.Matrix) []R
 			candidates = append(candidates, pairCandidate{
 				devA:  developers[i],
 				devB:  developers[j],
-				count: matrix.Count(developers[i].CanonicalEmail(), developers[j].CanonicalEmail()),
+				count: matrix.CountByDeveloper(developers[i], developers[j]),
 			})
 		}
 	}
@@ -133,11 +133,9 @@ func generateLeastRecent(developers []git.Developer, matrix *pairing.Matrix, rec
 		for j := i + 1; j < n; j++ {
 			devA := developers[i]
 			devB := developers[j]
-			emailA := devA.CanonicalEmail()
-			emailB := devB.CanonicalEmail()
 
-			lastTime, hasData := recencyMatrix.LastPaired(emailA, emailB)
-			count := matrix.Count(emailA, emailB)
+			lastTime, hasData := recencyMatrix.LastPairedByDeveloper(devA, devB)
+			count := matrix.CountByDeveloper(devA, devB)
 
 			allPairs = append(allPairs, pairWithRecency{
 				devA:     devA,
