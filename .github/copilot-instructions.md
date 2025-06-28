@@ -694,6 +694,8 @@ PairStair includes two development helper scripts to streamline common workflows
 
 **Safety**: Script aborts on any validation failure with helpful error messages.
 
+**Release notes conventions**: Focus release notes on describing changes, not repeating version numbers. Git tags inherently contain version information, making version repetition redundant.
+
 **Documentation**: Full details in `CONTRIBUTING.md` for both scripts.
 
 ### Git Repository Hygiene

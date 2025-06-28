@@ -134,6 +134,12 @@ Comprehensive script that automates the entire release process with intelligent 
 - Aborts if version tag already exists
 - Provides helpful error messages and suggestions
 
+**Release notes format**:
+- Release notes should describe **what changed**, not repeat the version number
+- Git tags inherently contain version information, making version repetition redundant
+- Focus on features, fixes, and improvements rather than version identifiers
+- Examples: "Add HTML streaming support" (good) vs "v0.8.0 - Add HTML streaming support" (redundant)
+
 ## Build and Release Process
 
 ### CI/CD Pipeline

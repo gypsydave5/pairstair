@@ -217,9 +217,7 @@ if [ -n "$RELEASE_NOTES" ]; then
     echo "Using provided release notes"
 else
     # Default tag message if none provided
-    TAG_MESSAGE="$VERSION
-
-Release $VERSION with latest changes and improvements."
+    TAG_MESSAGE="Release with latest changes and improvements."
     echo "Using default release notes"
 fi
 
