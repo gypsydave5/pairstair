@@ -115,7 +115,7 @@ When making changes to existing code, follow these critical practices:
 6. **Verify tests pass**:
    - Run tests to confirm they now pass
    - Run all tests to ensure no regressions
-   - Build and manually test if applicable
+   - **Trust passing tests - avoid redundant manual verification if acceptance tests exist**
 
 7. **Refactor if needed**:
    - Clean up code while keeping tests green
@@ -233,22 +233,34 @@ When making changes to existing code, follow these critical practices:
 
 #### Avoiding Redundant Manual Testing
 
+**Critical principle: Trust your test suite and avoid duplicating what tests already verify**
+
 1. **Leverage acceptance tests**: If comprehensive acceptance tests exist:
    - They provide end-to-end verification of CLI behavior
-   - Manual binary testing becomes redundant
+   - Manual binary testing becomes redundant and wastes time
    - Focus on ensuring all test types pass instead
+   - **If `go test ./...` passes, have confidence the functionality works**
 
-2. **When manual testing is needed**:
-   - New features not covered by existing acceptance tests
-   - Complex edge cases that are hard to automate
+2. **Don't duplicate test verification manually**:
+   - ❌ **Avoid**: Running `go test ./...`, then building binary, then manually testing same functionality
+   - ✅ **Do**: Run `go test ./...`, trust it passes, move on
+   - ❌ **Avoid**: Testing CLI flags manually when acceptance tests cover them
+   - ✅ **Do**: Add missing test coverage if you feel manual testing is needed
+
+3. **When manual testing is appropriate**:
+   - New features not yet covered by existing acceptance tests
+   - Complex edge cases that are hard to automate  
    - Performance or resource usage verification
    - User experience validation for new interfaces
+   - Integration with external systems (browser opening, file operations)
 
-3. **Acceptance test coverage should include**:
+4. **Acceptance test coverage should include**:
    - All CLI flags and combinations
    - Different input scenarios (various git repos)
    - Output format verification
    - Error handling and edge cases
+
+**Remember**: Time spent on redundant manual verification is time not spent on valuable development work. Trust your test suite and focus effort where it adds unique value.
 
 #### Responding to User Interventions
 
