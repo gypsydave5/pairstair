@@ -94,7 +94,7 @@ func PrintMatrixCLI(matrix *pairing.Matrix, developers []git.Developer) {
 func PrintRecommendationsCLI(recommendations []recommend.Recommendation, strategy string) {
 	fmt.Println()
 	if len(recommendations) == 0 {
-		fmt.Println("Skipping pairing recommendations - too many developers (> 10)")
+		fmt.Println("Skipping pairing recommendations - too many developers (> 20)")
 		return
 	}
 
@@ -197,7 +197,7 @@ th { background: #eee; }
 	b.WriteString("<div class=\"recommend\">")
 	if len(recommendations) == 0 {
 		b.WriteString("<h2>Pairing Recommendations</h2>")
-		b.WriteString("<p>Skipping pairing recommendations - too many developers (> 10)</p>")
+		b.WriteString("<p>Skipping pairing recommendations - too many developers (> 20)</p>")
 	} else {
 		b.WriteString("<h2>Pairing Recommendations (least-paired overall, optimal matching)</h2><ul>")
 		for _, rec := range recommendations {
