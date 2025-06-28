@@ -274,20 +274,10 @@ func BuildPairMatrix(team team.Team, commits []git.Commit, useTeam bool) (*Matri
 
 	// Add any team members not found in commits
 	if useTeam {
-		for _, tm := range team.GetTeamMembers() {
-			emails := git.ExtractAllEmails(tm)
-			if len(emails) > 0 {
-				primaryEmail := emails[0]
-				if _, ok := devsSet[primaryEmail]; !ok {
-					// Extract name from team member string
-					name := extractNameFromTeamMember(tm)
-					dev := git.Developer{
-						DisplayName:     name,
-						EmailAddresses:  emails,
-						AbbreviatedName: makeAbbreviatedName(name),
-					}
-					emailToDevs[primaryEmail] = dev
-				}
+		for _, dev := range team.GetDevelopers() {
+			primaryEmail := dev.CanonicalEmail()
+			if _, ok := devsSet[primaryEmail]; !ok {
+				emailToDevs[primaryEmail] = dev
 			}
 		}
 	}
@@ -353,14 +343,6 @@ func makeAbbreviatedName(name string) string {
 	}
 
 	return strings.Join(initials, "")
-}
-
-// extractNameFromTeamMember extracts the display name from a team member string like "Alice Smith <alice@example.com>"
-func extractNameFromTeamMember(member string) string {
-	if idx := strings.Index(member, "<"); idx >= 0 {
-		return strings.TrimSpace(member[:idx])
-	}
-	return strings.TrimSpace(member)
 }
 
 // makeShortLabelsWithNames builds short labels for each developer, preferring name if available

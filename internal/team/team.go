@@ -8,6 +8,7 @@ package team
 import (
 	"bufio"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/gypsydave5/pairstair/internal/git"
@@ -30,6 +31,24 @@ func (t Team) HasDeveloperByEmail(email string) bool {
 // GetEmailMappings returns the email-to-name and email-to-primary-email mappings
 func (t Team) GetEmailMappings() (map[string]string, map[string]string) {
 	return t.emailToName, t.emailToPrimaryEmail
+}
+
+// GetDevelopers returns a slice of all developers in the team, sorted by canonical email
+func (t Team) GetDevelopers() []git.Developer {
+	var developers []git.Developer
+
+	// Convert the map to a slice for consistent ordering
+	var emails []string
+	for email := range t.developers {
+		emails = append(emails, email)
+	}
+	sort.Strings(emails)
+
+	for _, email := range emails {
+		developers = append(developers, t.developers[email])
+	}
+
+	return developers
 }
 
 // GetTeamMembers returns the original team member strings
@@ -91,7 +110,7 @@ func ReadTeamFile(filename string, subTeam string) ([]string, error) {
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		
+
 		// Skip empty lines and comments
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
