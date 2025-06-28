@@ -43,6 +43,88 @@ Structs should for the most part be initialized using a public function starting
 
 Modules should be used to group related functionality. Each module should have a clear purpose and should not contain unrelated code. The module name should be descriptive of its functionality.
 
+### Avoiding Primitive Obsession
+
+**Critical principle: Always use domain objects instead of primitive strings when representing domain concepts.**
+
+#### Identifying Primitive Obsession
+
+Watch for these red flags that indicate primitive obsession:
+
+1. **Repeated string parsing**: Code that repeatedly extracts parts from strings (emails from "Name <email>", etc.)
+2. **Parallel data structures**: Multiple maps/slices tracking related information about the same entities
+3. **String-based function parameters**: Functions taking multiple string parameters that represent domain objects
+4. **Manual object reconstruction**: Creating domain objects from strings in multiple places
+5. **Type-unsafe operations**: Easy to mix up different types of strings (emails vs names vs IDs)
+
+#### Refactoring Strategy
+
+When you identify primitive obsession, follow this systematic approach:
+
+1. **Start with the consumer, not the producer**: Look at where the data is used, not where it's created
+2. **Add rich object APIs alongside primitive ones**: Don't break existing code; provide better alternatives
+3. **Update consumers to use rich objects**: Change call sites to use the new APIs
+4. **Remove primitive APIs once unused**: Clean up dead code after migration is complete
+
+#### Example Pattern - Before and After
+
+**❌ Before: Primitive obsession**
+```go
+// Using email strings everywhere
+func CountPairs(matrix *Matrix, dev1Email, dev2Email string) int {
+    return matrix.Count(dev1Email, dev2Email)  
+}
+
+// Manual object reconstruction from strings
+for _, memberString := range team.GetTeamMembers() {
+    name := extractNameFromString(memberString)
+    emails := extractEmailsFromString(memberString)
+    dev := Developer{DisplayName: name, EmailAddresses: emails}
+    // Use dev...
+}
+```
+
+**✅ After: Rich domain objects**
+```go
+// Using Developer objects directly
+func CountPairs(matrix *Matrix, dev1, dev2 Developer) int {
+    return matrix.CountByDeveloper(dev1, dev2)
+}
+
+// Direct object access
+for _, dev := range team.GetDevelopers() {
+    // Use dev directly - no parsing needed
+}
+```
+
+#### API Design Guidelines
+
+1. **Provide both primitive and rich object methods during transition**:
+   ```go
+   // Keep existing for compatibility
+   func (m *Matrix) Count(emailA, emailB string) int
+   
+   // Add new rich object API
+   func (m *Matrix) CountByDeveloper(devA, devB Developer) int {
+       return m.Count(devA.CanonicalEmail(), devB.CanonicalEmail())
+   }
+   ```
+
+2. **Use rich objects in new code**: Always prefer domain objects in new functions
+3. **Store rich objects primarily**: Let the domain objects be the source of truth, derive primitives when needed
+4. **Empty objects for special cases**: Use empty domain objects (e.g., `Developer{}` with no EmailAddresses) instead of empty strings
+
+#### Code Evolution Signs
+
+Watch for these signs that your domain model has outgrown primitive representations:
+
+- **Multiple conversion functions**: Functions that convert between strings and objects
+- **Derived data structures**: Maps and slices that duplicate information from objects  
+- **Utility function families**: Many small functions for parsing/manipulating primitive formats
+- **Type confusion**: Easy to pass wrong string type to functions
+
+**When you see these patterns, it's time to eliminate primitive obsession.**
+
 ### Tests
 
 Tests should be written for all public functions and methods. Use the `testing` package from the standard library. Tests should be placed in a file ending with `_test.go`. Each test function should start with `Test` followed by the name of the function being tested.
@@ -232,6 +314,51 @@ func TestTripleRecommendations(t *testing.T) {
 5. **Refactor**: Clean up while keeping all tests green
 
 **Remember**: Acceptance tests guide the overall feature design, while unit tests guide the implementation details.
+
+### Incremental Refactoring Principles
+
+**Guidelines for safely refactoring existing code to eliminate primitive obsession and improve design**
+
+#### Refactoring Strategy
+
+1. **One concept per commit**: Each refactoring step should address a single aspect of the problem
+   - Example: "Change Recommendation struct to use Developer objects"
+   - Example: "Add Developer-based convenience methods to Matrix"
+   - Example: "Remove unused string utility functions"
+
+2. **Always maintain backward compatibility during transition**:
+   - Add new rich object APIs alongside existing primitive APIs
+   - Keep existing string-based methods until all callers are updated
+   - Provide both `Count(emailA, emailB string)` and `CountByDeveloper(devA, devB Developer)`
+
+3. **Follow the refactoring sequence**:
+   - **Consumer first**: Start by improving where data is used, not where it's created
+   - **Add alongside**: Create new APIs without breaking existing ones
+   - **Update callers**: Gradually migrate usage to new APIs
+   - **Clean up**: Remove old APIs only after they're unused
+
+4. **Test after every logical change**:
+   - Run `go test ./...` after each commit
+   - Fix compilation errors immediately
+   - Don't accumulate multiple breaking changes
+
+#### Legacy Code Management
+
+1. **Identify dead code systematically**:
+   - Use `grep -r "functionName" --include="*.go" .` to find actual usage
+   - Look for utility function families that became obsolete
+   - Remove unused imports after removing functions
+
+2. **Signs that code evolution has outgrown primitives**:
+   - Multiple conversion functions between strings and objects
+   - Parallel data structures tracking the same information
+   - Repeated string parsing in multiple locations
+   - Manual object reconstruction from primitives
+
+3. **When removing legacy code**:
+   - Remove entire families of related functions together
+   - Update error messages and limits that reference old implementations
+   - Clean up imports that are no longer needed
 
 ### Critical Process Guidelines for Code Changes
 
