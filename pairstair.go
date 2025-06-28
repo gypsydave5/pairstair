@@ -18,6 +18,89 @@ import (
 // Version is the fallback version, overridden by build info when available
 const Version = "0.6.0-dev"
 
+func main() {
+	config := parseFlags()
+
+	// Check for updates (silent failure, no caching)
+	if updateMessage := update.CheckForUpdate(getVersion()); updateMessage != "" {
+		fmt.Fprintln(os.Stderr, updateMessage)
+		fmt.Fprintln(os.Stderr, "")
+	}
+
+	if config.Version {
+		fmt.Println(getVersion())
+		return
+	}
+
+	wd, err := os.Getwd()
+	exitOnError(err, "Error getting working directory")
+
+	teamPath := filepath.Join(wd, ".team")
+	teamObj, err := team.NewTeamFromFile(teamPath, config.Team)
+	useTeam := true
+	if err != nil {
+		if os.IsNotExist(err) {
+			useTeam = false
+		} else {
+			exitOnError(err, "Error reading .team file")
+		}
+	}
+
+	commits, err := git.GetCommitsSince(config.Window)
+	exitOnError(err, "Error getting git commits")
+
+	matrix, pairRecency, developers := pairing.BuildPairMatrix(teamObj, commits, useTeam)
+
+	// Generate recommendations based on strategy
+	strategy := parseStrategy(config.Strategy)
+	recommendations := recommend.GenerateRecommendations(developers, matrix, pairRecency, strategy)
+
+	renderer := output.NewRendererWithOpen(config.Output, config.Open)
+	err = renderer.Render(matrix, pairRecency, developers, config.Strategy, recommendations)
+	exitOnError(err, "Error rendering output")
+}
+
+// Config holds all command-line configuration
+type Config struct {
+	Window   string
+	Output   string
+	Strategy string
+	Team     string
+	Version  bool
+	Open     bool
+}
+
+// parseFlags parses command-line flags and returns a Config
+func parseFlags() *Config {
+	config := &Config{}
+	flag.StringVar(&config.Window, "window", "1w", "Time window to examine (e.g. 1d, 2w, 3m, 1y)")
+	flag.StringVar(&config.Output, "output", "cli", "Output format: 'cli' (default) or 'html'")
+	flag.StringVar(&config.Strategy, "strategy", "least-paired", "Recommendation strategy: 'least-paired' (default) or 'least-recent'")
+	flag.StringVar(&config.Team, "team", "", "Sub-team to analyze (e.g. 'frontend', 'backend')")
+	flag.BoolVar(&config.Version, "version", false, "Show version information")
+	flag.BoolVar(&config.Open, "open", false, "Open HTML output in browser (only applies when -output=html)")
+	flag.Parse()
+	return config
+}
+
+// parseStrategy converts a strategy string to a recommend.Strategy type
+func parseStrategy(strategyStr string) recommend.Strategy {
+	switch strategyStr {
+	case "least-recent":
+		return recommend.LeastRecent
+	default: // least-paired
+		return recommend.LeastPaired
+	}
+}
+
+// exitOnError exits the program with an error message if err is not nil
+func exitOnError(err error, message string) {
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s: %v\n", message, err)
+		os.Exit(1)
+	}
+}
+
 // getVersion returns the version string, preferring build info over the constant
 func getVersion() string {
 	info, ok := debug.ReadBuildInfo()
@@ -73,84 +156,4 @@ func getVersionFromBuildInfo(info *debug.BuildInfo, hasInfo bool) string {
 
 	// Fallback to compile-time constant
 	return Version
-}
-
-// Config holds all command-line configuration
-type Config struct {
-	Window   string
-	Output   string
-	Strategy string
-	Team     string
-	Version  bool
-	Open     bool
-}
-
-// parseFlags parses command-line flags and returns a Config
-func parseFlags() *Config {
-	config := &Config{}
-	flag.StringVar(&config.Window, "window", "1w", "Time window to examine (e.g. 1d, 2w, 3m, 1y)")
-	flag.StringVar(&config.Output, "output", "cli", "Output format: 'cli' (default) or 'html'")
-	flag.StringVar(&config.Strategy, "strategy", "least-paired", "Recommendation strategy: 'least-paired' (default) or 'least-recent'")
-	flag.StringVar(&config.Team, "team", "", "Sub-team to analyze (e.g. 'frontend', 'backend')")
-	flag.BoolVar(&config.Version, "version", false, "Show version information")
-	flag.BoolVar(&config.Open, "open", false, "Open HTML output in browser (only applies when -output=html)")
-	flag.Parse()
-	return config
-}
-
-// exitOnError exits the program with an error message if err is not nil
-func exitOnError(err error, message string) {
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s: %v\n", message, err)
-		os.Exit(1)
-	}
-}
-
-func main() {
-	config := parseFlags()
-
-	// Check for updates (silent failure, no caching)
-	if updateMessage := update.CheckForUpdate(getVersion()); updateMessage != "" {
-		fmt.Fprintln(os.Stderr, updateMessage)
-		fmt.Fprintln(os.Stderr, "")
-	}
-
-	if config.Version {
-		fmt.Println(getVersion())
-		return
-	}
-
-	wd, err := os.Getwd()
-	exitOnError(err, "Error getting working directory")
-
-	teamPath := filepath.Join(wd, ".team")
-	teamObj, err := team.NewTeamFromFile(teamPath, config.Team)
-	useTeam := true
-	if err != nil {
-		if os.IsNotExist(err) {
-			useTeam = false
-		} else {
-			exitOnError(err, "Error reading .team file")
-		}
-	}
-
-	commits, err := git.GetCommitsSince(config.Window)
-	exitOnError(err, "Error getting git commits")
-
-	matrix, pairRecency, developers := pairing.BuildPairMatrix(teamObj, commits, useTeam)
-
-	// Generate recommendations based on strategy
-	var strategy recommend.Strategy
-	switch config.Strategy {
-	case "least-recent":
-		strategy = recommend.LeastRecent
-	default: // least-paired
-		strategy = recommend.LeastPaired
-	}
-	
-	recommendations := recommend.GenerateRecommendations(developers, matrix, pairRecency, strategy)
-
-	renderer := output.NewRendererWithOpen(config.Output, config.Open)
-	err = renderer.Render(matrix, pairRecency, developers, config.Strategy, recommendations)
-	exitOnError(err, "Error rendering output")
 }
