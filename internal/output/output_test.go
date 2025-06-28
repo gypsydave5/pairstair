@@ -140,8 +140,8 @@ func TestPrintRecommendationsCLI(t *testing.T) {
 			name: "single pair recommendation",
 			recommendations: []recommend.Recommendation{
 				{
-					A:     "alice@example.com",
-					B:     "bob@example.com",
+					A:     git.NewDeveloper("Alice Smith <alice@example.com>"),
+					B:     git.NewDeveloper("Bob Jones <bob@example.com>"),
 					Count: 5,
 				},
 			},
@@ -151,8 +151,8 @@ func TestPrintRecommendationsCLI(t *testing.T) {
 			name: "unpaired developer",
 			recommendations: []recommend.Recommendation{
 				{
-					A:     "alice@example.com",
-					B:     "",
+					A:     git.NewDeveloper("Alice Smith <alice@example.com>"),
+					B:     git.Developer{}, // Empty Developer for unpaired
 					Count: 0,
 				},
 			},
@@ -162,8 +162,8 @@ func TestPrintRecommendationsCLI(t *testing.T) {
 			name: "least-recent strategy",
 			recommendations: []recommend.Recommendation{
 				{
-					A:         "alice@example.com",
-					B:         "bob@example.com",
+					A:         git.NewDeveloper("Alice Smith <alice@example.com>"),
+					B:         git.NewDeveloper("Bob Jones <bob@example.com>"),
 					Count:     5,
 					DaysSince: 3,
 					HasPaired: true,
@@ -189,19 +189,19 @@ func TestPrintRecommendationsCLI(t *testing.T) {
 func TestRecommendation(t *testing.T) {
 	// Test the Recommendation struct
 	rec := recommend.Recommendation{
-		A:          "alice@example.com",
-		B:          "bob@example.com",
+		A:          git.NewDeveloper("Alice Smith <alice@example.com>"),
+		B:          git.NewDeveloper("Bob Jones <bob@example.com>"),
 		Count:      5,
 		LastPaired: time.Now(),
 		DaysSince:  3,
 		HasPaired:  true,
 	}
 
-	if rec.A != "alice@example.com" {
-		t.Errorf("Expected A to be 'alice@example.com', got %s", rec.A)
+	if rec.A.CanonicalEmail() != "alice@example.com" {
+		t.Errorf("Expected A to be 'alice@example.com', got %s", rec.A.CanonicalEmail())
 	}
-	if rec.B != "bob@example.com" {
-		t.Errorf("Expected B to be 'bob@example.com', got %s", rec.B)
+	if rec.B.CanonicalEmail() != "bob@example.com" {
+		t.Errorf("Expected B to be 'bob@example.com', got %s", rec.B.CanonicalEmail())
 	}
 	if rec.Count != 5 {
 		t.Errorf("Expected Count to be 5, got %d", rec.Count)
@@ -225,8 +225,8 @@ func TestRenderHTMLToWriter(t *testing.T) {
 
 	recommendations := []recommend.Recommendation{
 		{
-			A:         alice.AbbreviatedName,
-			B:         bob.AbbreviatedName,
+			A:         alice,
+			B:         bob,
 			Count:     2,
 			HasPaired: true,
 		},

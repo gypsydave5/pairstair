@@ -27,9 +27,9 @@ func TestGenerateRecommendations_LeastPaired(t *testing.T) {
 		t.Error("Expected recommendations, got none")
 	}
 
-	// Verify no nil recommendations
+	// Verify no empty recommendations
 	for i, rec := range recommendations {
-		if rec.A == "" {
+		if len(rec.A.EmailAddresses) == 0 {
 			t.Errorf("Recommendation %d has empty A field", i)
 		}
 	}
@@ -55,7 +55,7 @@ func TestGenerateRecommendations_LeastRecent(t *testing.T) {
 
 	if len(recommendations) > 0 {
 		rec := recommendations[0]
-		if rec.A == "" || rec.B == "" {
+		if len(rec.A.EmailAddresses) == 0 || len(rec.B.EmailAddresses) == 0 {
 			t.Error("Expected both A and B to be populated")
 		}
 	}

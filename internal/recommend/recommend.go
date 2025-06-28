@@ -15,7 +15,7 @@ import (
 
 // Recommendation represents a pairing recommendation for developers
 type Recommendation struct {
-	A, B       string
+	A, B       git.Developer
 	Count      int
 	LastPaired time.Time
 	DaysSince  int
@@ -82,8 +82,8 @@ func generateLeastPaired(developers []git.Developer, matrix *pairing.Matrix) []R
 		emailB := candidate.devB.CanonicalEmail()
 		if !used[emailA] && !used[emailB] {
 			recommendations = append(recommendations, Recommendation{
-				A:     candidate.devA.AbbreviatedName,
-				B:     candidate.devB.AbbreviatedName,
+				A:     candidate.devA,
+				B:     candidate.devB,
 				Count: candidate.count,
 			})
 			used[emailA] = true
@@ -96,8 +96,8 @@ func generateLeastPaired(developers []git.Developer, matrix *pairing.Matrix) []R
 		email := dev.CanonicalEmail()
 		if !used[email] {
 			recommendations = append(recommendations, Recommendation{
-				A:     dev.AbbreviatedName,
-				B:     "",
+				A:     dev,
+				B:     git.Developer{}, // Empty Developer object for unpaired
 				Count: 0,
 			})
 			break
@@ -184,8 +184,8 @@ func generateLeastRecent(developers []git.Developer, matrix *pairing.Matrix, rec
 		}
 
 		recommendations = append(recommendations, Recommendation{
-			A:          pairData.devA.AbbreviatedName,
-			B:          pairData.devB.AbbreviatedName,
+			A:          pairData.devA,
+			B:          pairData.devB,
 			Count:      pairData.count,
 			LastPaired: pairData.lastTime,
 			DaysSince:  daysSince,
@@ -202,8 +202,8 @@ func generateLeastRecent(developers []git.Developer, matrix *pairing.Matrix, rec
 			email := dev.CanonicalEmail()
 			if !used[email] {
 				recommendations = append(recommendations, Recommendation{
-					A:         dev.AbbreviatedName,
-					B:         "",
+					A:         dev,
+					B:         git.Developer{}, // Empty Developer object for unpaired
 					Count:     0,
 					DaysSince: 0,
 					HasPaired: false,

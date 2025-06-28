@@ -106,23 +106,23 @@ func PrintRecommendationsCLI(recommendations []recommend.Recommendation, strateg
 	}
 
 	for _, rec := range recommendations {
-		if rec.B == "" {
-			fmt.Printf("  %-6s (unpaired)\n", rec.A)
+		if len(rec.B.EmailAddresses) == 0 {
+			fmt.Printf("  %-6s (unpaired)\n", rec.A.AbbreviatedName)
 		} else {
 			if strategy == "least-recent" {
 				if rec.HasPaired {
 					if rec.DaysSince == 0 {
-						fmt.Printf("  %-6s <-> %-6s : last paired today\n", rec.A, rec.B)
+						fmt.Printf("  %-6s <-> %-6s : last paired today\n", rec.A.AbbreviatedName, rec.B.AbbreviatedName)
 					} else if rec.DaysSince == 1 {
-						fmt.Printf("  %-6s <-> %-6s : last paired 1 day ago\n", rec.A, rec.B)
+						fmt.Printf("  %-6s <-> %-6s : last paired 1 day ago\n", rec.A.AbbreviatedName, rec.B.AbbreviatedName)
 					} else {
-						fmt.Printf("  %-6s <-> %-6s : last paired %d days ago\n", rec.A, rec.B, rec.DaysSince)
+						fmt.Printf("  %-6s <-> %-6s : last paired %d days ago\n", rec.A.AbbreviatedName, rec.B.AbbreviatedName, rec.DaysSince)
 					}
 				} else {
-					fmt.Printf("  %-6s <-> %-6s : never paired\n", rec.A, rec.B)
+					fmt.Printf("  %-6s <-> %-6s : never paired\n", rec.A.AbbreviatedName, rec.B.AbbreviatedName)
 				}
 			} else {
-				fmt.Printf("  %-6s <-> %-6s : %d times\n", rec.A, rec.B, rec.Count)
+				fmt.Printf("  %-6s <-> %-6s : %d times\n", rec.A.AbbreviatedName, rec.B.AbbreviatedName, rec.Count)
 			}
 		}
 	}
@@ -201,10 +201,10 @@ th { background: #eee; }
 	} else {
 		b.WriteString("<h2>Pairing Recommendations (least-paired overall, optimal matching)</h2><ul>")
 		for _, rec := range recommendations {
-			if rec.B == "" {
-				b.WriteString(fmt.Sprintf("<li><b>%s</b> (unpaired)</li>", rec.A))
+			if len(rec.B.EmailAddresses) == 0 {
+				b.WriteString(fmt.Sprintf("<li><b>%s</b> (unpaired)</li>", rec.A.AbbreviatedName))
 			} else {
-				b.WriteString(fmt.Sprintf("<li><b>%s</b> &lt;-&gt; <b>%s</b> : %d times</li>", rec.A, rec.B, rec.Count))
+				b.WriteString(fmt.Sprintf("<li><b>%s</b> &lt;-&gt; <b>%s</b> : %d times</li>", rec.A.AbbreviatedName, rec.B.AbbreviatedName, rec.Count))
 			}
 		}
 		b.WriteString("</ul>")
