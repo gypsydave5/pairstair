@@ -295,7 +295,9 @@ go build
 ./dev.sh version  # Show version info
 
 # Create a release (requires clean working directory)
-./release.sh v0.x.y "Release notes"
+./release.sh patch "Bug fixes"        # Auto-increment patch version
+./release.sh minor "New features"     # Auto-increment minor version  
+./release.sh -v v2.0.0 "Major update" # Specify exact version
 ```
 
 ## Documentation

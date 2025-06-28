@@ -678,12 +678,15 @@ PairStair includes two development helper scripts to streamline common workflows
 #### release.sh - Release Automation  
 
 ```bash
-./release.sh v0.8.0                           # Release with default notes
-./release.sh v0.8.0 "Custom release notes"    # Release with custom notes
+./release.sh patch "Bug fixes"               # Auto-increment patch (0.7.2 -> 0.7.3)
+./release.sh minor "New features"            # Auto-increment minor (0.7.2 -> 0.8.0)
+./release.sh major "Breaking changes"        # Auto-increment major (0.7.2 -> 1.0.0)
+./release.sh -v v2.0.0 "Custom version"      # Specify exact version when needed
 ```
 
 **Features**:
-- Validates version format (vX.Y.Z) and checks for existing tags
+- Automatic semantic version calculation from latest git tag
+- Manual version override with -v flag for special cases
 - Requires completely clean working directory (no uncommitted changes)
 - Runs all tests and cleans up artifacts
 - Creates annotated git tag and pushes to trigger CI/CD

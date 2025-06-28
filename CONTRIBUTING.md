@@ -94,31 +94,35 @@ Simple helper script for common development tasks:
 
 ### release.sh - Release Automation
 
-Comprehensive script that automates the entire release process:
+Comprehensive script that automates the entire release process with intelligent version calculation:
 
 ```bash
-# Create release with default notes
-./release.sh v0.8.0
+# Semantic version releases (recommended)
+./release.sh patch                    # v0.7.2 -> v0.7.3
+./release.sh minor "New HTML feature" # v0.7.2 -> v0.8.0  
+./release.sh major "Breaking changes" # v0.7.2 -> v1.0.0
 
-# Create release with custom notes
-./release.sh v0.8.0 "v0.8.0 - New features and improvements
-
-- Added feature X
-- Fixed bug Y
-- Updated documentation"
+# Explicit version (when needed)
+./release.sh -v v2.0.0 "Complete rewrite"
 
 # Show help
 ./release.sh
 ```
 
 **What the release script does**:
-1. Validates version format (vX.Y.Z)
-2. Checks working directory is completely clean (no uncommitted changes)
-3. Verifies the tag doesn't already exist
+1. Calculates next version from latest git tag (or uses specified version)
+2. Validates version format and checks for existing tags
+3. Checks working directory is completely clean (no uncommitted changes)
 4. Runs all tests to ensure they pass
 5. Pushes any unpushed commits to origin
 6. Creates annotated git tag with release notes
 7. Pushes the tag to trigger CI/CD pipeline
+
+**Version calculation**:
+- **patch**: Bug fixes and small improvements (0.7.2 -> 0.7.3)
+- **minor**: New features, backward compatible (0.7.2 -> 0.8.0)
+- **major**: Breaking changes (0.7.2 -> 1.0.0)
+- **-v flag**: Specify exact version when automatic calculation isn't suitable
 
 **Requirements**:
 - Clean working directory (no staged or unstaged changes)
