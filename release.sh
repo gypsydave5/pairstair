@@ -1,0 +1,155 @@
+#!/bin/sh
+set -e
+
+# PairStair Release Script
+# Automates the common release workflow for creating and pushing new versions
+
+usage() {
+    echo "Usage: $0 <version> [release_notes]"
+    echo ""
+    echo "Creates a new release with the specified version number."
+    echo ""
+    echo "Arguments:"
+    echo "  version        Version number (e.g., v0.7.1, v0.8.0)"
+    echo "  release_notes  Optional release notes (if not provided, uses default)"
+    echo ""
+    echo "Examples:"
+    echo "  $0 v0.7.1"
+    echo "  $0 v0.8.0 'Add new feature X and fix bug Y'"
+    echo "  $0 v0.8.0 'v0.8.0 - Major update"
+    echo ""
+    echo "Features:"
+    echo "- New feature A"
+    echo "- Bug fix B'"
+    echo ""
+    echo "The script will:"
+    echo "  1. Verify working directory is completely clean"
+    echo "  2. Run all tests to ensure they pass"
+    echo "  3. Push any unpushed commits to origin"
+    echo "  4. Create and push annotated git tag"
+    echo ""
+    exit 1
+}
+
+# Check arguments
+if [ $# -lt 1 ] || [ $# -gt 2 ]; then
+    echo "Error: Invalid number of arguments"
+    usage
+fi
+
+VERSION="$1"
+RELEASE_NOTES="$2"
+
+# Validate version format (basic check)
+if ! echo "$VERSION" | grep -q '^v[0-9]\+\.[0-9]\+\.[0-9]\+$'; then
+    echo "Error: Version must be in format vX.Y.Z (e.g., v0.7.1)"
+    exit 1
+fi
+
+echo "🚀 Starting release process for $VERSION"
+echo ""
+
+# Check if we're in a git repository
+if ! git rev-parse --git-dir >/dev/null 2>&1; then
+    echo "Error: Not in a git repository"
+    exit 1
+fi
+
+# Check if version tag already exists
+if git tag -l | grep -q "^$VERSION$"; then
+    echo "Error: Version tag $VERSION already exists"
+    exit 1
+fi
+
+# Verify we're on master branch
+CURRENT_BRANCH=$(git branch --show-current)
+if [ "$CURRENT_BRANCH" != "master" ]; then
+    echo "Warning: You are on branch '$CURRENT_BRANCH', not 'master'"
+    echo "Continue anyway? (y/N)"
+    read -r response
+    if [ "$response" != "y" ] && [ "$response" != "Y" ]; then
+        echo "Aborted"
+        exit 1
+    fi
+fi
+
+# Check for uncommitted changes (require completely clean working directory)
+if git diff --quiet && git diff --cached --quiet; then
+    echo "✓ Working directory is clean"
+else
+    echo "Error: Working directory has uncommitted changes. Please commit or stash them first."
+    echo ""
+    echo "All changes:"
+    git status --porcelain
+    echo ""
+    echo "Tip: Use 'git add . && git commit -m \"prepare for release\"' to commit changes"
+    exit 1
+fi
+
+# Run all tests
+echo ""
+echo "🧪 Running tests..."
+if ! go test ./...; then
+    echo "Error: Tests failed. Please fix them before releasing."
+    exit 1
+fi
+echo "✓ All tests passed"
+
+# Clean up any test artifacts
+echo ""
+echo "🧹 Cleaning up test artifacts..."
+find . -name "*.test" -type f -delete 2>/dev/null || true
+find . -name "pairstair" -type f -not -path "./pairstair" -delete 2>/dev/null || true
+echo "✓ Test artifacts cleaned"
+
+# Push commits to origin
+echo ""
+echo "⬆️  Pushing commits to origin..."
+git push origin "$CURRENT_BRANCH"
+echo "✓ Commits pushed"
+
+# Get the latest tag for release notes context
+PREVIOUS_TAG=$(git tag --sort=-version:refname | head -1 2>/dev/null || echo "")
+if [ -n "$PREVIOUS_TAG" ]; then
+    echo ""
+    echo "📋 Previous version: $PREVIOUS_TAG"
+    echo "📋 Commits since $PREVIOUS_TAG:"
+    git log --oneline "$PREVIOUS_TAG"..HEAD | head -10
+fi
+
+# Create annotated tag with release notes
+echo ""
+echo "🏷️  Creating release tag $VERSION..."
+
+# Use provided release notes or default
+if [ -n "$RELEASE_NOTES" ]; then
+    TAG_MESSAGE="$RELEASE_NOTES"
+    echo "Using provided release notes"
+else
+    # Default tag message if none provided
+    TAG_MESSAGE="$VERSION
+
+Release $VERSION with latest changes and improvements."
+    echo "Using default release notes"
+fi
+
+git tag -a "$VERSION" -m "$TAG_MESSAGE"
+echo "✓ Tag created"
+
+# Push the tag
+echo ""
+echo "🏷️  Pushing tag to origin..."
+git push origin "$VERSION"
+echo "✓ Tag pushed"
+
+echo ""
+echo "🎉 Release $VERSION completed successfully!"
+echo ""
+echo "The CI/CD pipeline will now:"
+echo "  • Build binaries for multiple platforms"
+echo "  • Create GitHub release with notes"
+echo "  • Update Homebrew tap repository"
+echo ""
+echo "Monitor the release progress at:"
+echo "  https://github.com/gypsydave5/pairstair/actions"
+echo "  https://github.com/gypsydave5/pairstair/releases"
