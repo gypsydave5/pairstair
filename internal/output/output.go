@@ -12,26 +12,16 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
-	"sort"
 	"strings"
-	"time"
 
 	"github.com/gypsydave5/pairstair/internal/git"
 	"github.com/gypsydave5/pairstair/internal/pairing"
+	"github.com/gypsydave5/pairstair/internal/recommend"
 )
-
-// Recommendation represents a pair of developers who should work together
-type Recommendation struct {
-	A, B       string
-	Count      int
-	LastPaired time.Time
-	DaysSince  int
-	HasPaired  bool
-}
 
 // OutputRenderer provides a unified interface for different output formats
 type OutputRenderer interface {
-	Render(matrix *pairing.Matrix, recencyMatrix *pairing.RecencyMatrix, developers []git.Developer, strategy string, recommendations []Recommendation) error
+	Render(matrix *pairing.Matrix, recencyMatrix *pairing.RecencyMatrix, developers []git.Developer, strategy string, recommendations []recommend.Recommendation) error
 }
 
 // CLIRenderer handles console output
@@ -43,14 +33,14 @@ type HTMLRenderer struct {
 }
 
 // Render outputs the matrix and recommendations to the console
-func (r *CLIRenderer) Render(matrix *pairing.Matrix, recencyMatrix *pairing.RecencyMatrix, developers []git.Developer, strategy string, recommendations []Recommendation) error {
+func (r *CLIRenderer) Render(matrix *pairing.Matrix, recencyMatrix *pairing.RecencyMatrix, developers []git.Developer, strategy string, recommendations []recommend.Recommendation) error {
 	PrintMatrixCLI(matrix, developers)
 	PrintRecommendationsCLI(recommendations, strategy)
 	return nil
 }
 
 // Render outputs the matrix and recommendations as HTML
-func (r *HTMLRenderer) Render(matrix *pairing.Matrix, recencyMatrix *pairing.RecencyMatrix, developers []git.Developer, strategy string, recommendations []Recommendation) error {
+func (r *HTMLRenderer) Render(matrix *pairing.Matrix, recencyMatrix *pairing.RecencyMatrix, developers []git.Developer, strategy string, recommendations []recommend.Recommendation) error {
 	if r.OpenInBrowser {
 		return RenderHTMLAndOpen(matrix, developers, recommendations)
 	} else {
@@ -101,7 +91,7 @@ func PrintMatrixCLI(matrix *pairing.Matrix, developers []git.Developer) {
 }
 
 // PrintRecommendationsCLI prints recommendations to the CLI
-func PrintRecommendationsCLI(recommendations []Recommendation, strategy string) {
+func PrintRecommendationsCLI(recommendations []recommend.Recommendation, strategy string) {
 	fmt.Println()
 	if len(recommendations) == 0 {
 		fmt.Println("Skipping pairing recommendations - too many developers (> 10)")
@@ -139,7 +129,7 @@ func PrintRecommendationsCLI(recommendations []Recommendation, strategy string) 
 }
 
 // RenderHTMLAndOpen renders HTML output and opens it in the default browser
-func RenderHTMLAndOpen(matrix *pairing.Matrix, developers []git.Developer, recommendations []Recommendation) error {
+func RenderHTMLAndOpen(matrix *pairing.Matrix, developers []git.Developer, recommendations []recommend.Recommendation) error {
 	tmpfile, err := os.CreateTemp("", "pairstair-*.html")
 	if err != nil {
 		return err
@@ -157,14 +147,14 @@ func RenderHTMLAndOpen(matrix *pairing.Matrix, developers []git.Developer, recom
 
 // RenderHTMLToWriter renders HTML output to the provided io.Writer
 // This is the testable version of HTML rendering that can write to any Writer
-func RenderHTMLToWriter(w io.Writer, matrix *pairing.Matrix, developers []git.Developer, recommendations []Recommendation) error {
+func RenderHTMLToWriter(w io.Writer, matrix *pairing.Matrix, developers []git.Developer, recommendations []recommend.Recommendation) error {
 	html := renderHTML(matrix, developers, recommendations)
 	_, err := w.Write([]byte(html))
 	return err
 }
 
 // renderHTML generates HTML output for the matrix and recommendations
-func renderHTML(matrix *pairing.Matrix, developers []git.Developer, recommendations []Recommendation) string {
+func renderHTML(matrix *pairing.Matrix, developers []git.Developer, recommendations []recommend.Recommendation) string {
 	var b strings.Builder
 	b.WriteString("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Pair Stair</title>")
 	b.WriteString(`<style>
@@ -241,180 +231,4 @@ func openBrowser(path string) error {
 		cmd = exec.Command("xdg-open", url)
 	}
 	return cmd.Start()
-}
-
-// RecommendPairsOptimal generates pairing recommendations using greedy approach
-// (minimize total pair count, each dev appears once)
-func RecommendPairsOptimal(developers []git.Developer, matrix *pairing.Matrix) []Recommendation {
-	if len(developers) < 2 {
-		return nil
-	}
-
-	if len(developers) > 10 {
-		return []Recommendation{} // Return empty list for too many developers
-	}
-
-	// Create all possible pairs with their counts
-	type pairCandidate struct {
-		devA, devB git.Developer
-		count      int
-	}
-
-	var candidates []pairCandidate
-	for i := 0; i < len(developers); i++ {
-		for j := i + 1; j < len(developers); j++ {
-			candidates = append(candidates, pairCandidate{
-				devA:  developers[i],
-				devB:  developers[j],
-				count: matrix.Count(developers[i].CanonicalEmail(), developers[j].CanonicalEmail()),
-			})
-		}
-	}
-
-	// Sort by count (ascending - least paired first)
-	sort.Slice(candidates, func(i, j int) bool {
-		return candidates[i].count < candidates[j].count
-	})
-
-	// Greedily select pairs ensuring each dev appears only once
-	used := make(map[string]bool)
-	var recommendations []Recommendation
-
-	for _, candidate := range candidates {
-		emailA := candidate.devA.CanonicalEmail()
-		emailB := candidate.devB.CanonicalEmail()
-		if !used[emailA] && !used[emailB] {
-			recommendations = append(recommendations, Recommendation{
-				A:     candidate.devA.AbbreviatedName,
-				B:     candidate.devB.AbbreviatedName,
-				Count: candidate.count,
-			})
-			used[emailA] = true
-			used[emailB] = true
-		}
-	}
-
-	// Handle unpaired developer if odd number
-	for _, dev := range developers {
-		email := dev.CanonicalEmail()
-		if !used[email] {
-			recommendations = append(recommendations, Recommendation{
-				A:     dev.AbbreviatedName,
-				B:     "",
-				Count: 0,
-			})
-			break
-		}
-	}
-
-	return recommendations
-}
-
-// RecommendPairsLeastRecent generates pairing recommendations based on least recent collaboration
-func RecommendPairsLeastRecent(developers []git.Developer, matrix *pairing.Matrix, recencyMatrix *pairing.RecencyMatrix) []Recommendation {
-	n := len(developers)
-	if n < 2 {
-		return nil
-	}
-
-	if n > 10 {
-		return []Recommendation{} // Return empty list for too many developers
-	}
-
-	type pairWithRecency struct {
-		devA, devB git.Developer
-		lastTime   time.Time
-		hasData    bool
-		count      int
-	}
-
-	var allPairs []pairWithRecency
-	now := time.Now()
-
-	// Generate all possible pairs
-	for i := 0; i < n; i++ {
-		for j := i + 1; j < n; j++ {
-			devA := developers[i]
-			devB := developers[j]
-			emailA := devA.CanonicalEmail()
-			emailB := devB.CanonicalEmail()
-
-			lastTime, hasData := recencyMatrix.LastPaired(emailA, emailB)
-			count := matrix.Count(emailA, emailB)
-
-			allPairs = append(allPairs, pairWithRecency{
-				devA:     devA,
-				devB:     devB,
-				lastTime: lastTime,
-				hasData:  hasData,
-				count:    count,
-			})
-		}
-	}
-
-	// Sort pairs by recency (least recent first)
-	sort.Slice(allPairs, func(i, j int) bool {
-		// Pairs that have never worked together come first
-		if !allPairs[i].hasData && allPairs[j].hasData {
-			return true
-		}
-		if allPairs[i].hasData && !allPairs[j].hasData {
-			return false
-		}
-		if !allPairs[i].hasData && !allPairs[j].hasData {
-			return false // Both have no data, order doesn't matter
-		}
-		// Both have data, sort by oldest first
-		return allPairs[i].lastTime.Before(allPairs[j].lastTime)
-	})
-
-	// Create recommendations using a greedy approach
-	var recommendations []Recommendation
-	used := make(map[string]bool)
-
-	for _, pairData := range allPairs {
-		emailA := pairData.devA.CanonicalEmail()
-		emailB := pairData.devB.CanonicalEmail()
-		if used[emailA] || used[emailB] {
-			continue
-		}
-
-		daysSince := 0
-		if pairData.hasData {
-			daysSince = int(now.Sub(pairData.lastTime).Hours() / 24)
-		} else {
-			daysSince = -1 // Never paired
-		}
-
-		recommendations = append(recommendations, Recommendation{
-			A:          pairData.devA.AbbreviatedName,
-			B:          pairData.devB.AbbreviatedName,
-			Count:      pairData.count,
-			LastPaired: pairData.lastTime,
-			DaysSince:  daysSince,
-			HasPaired:  pairData.hasData,
-		})
-
-		used[emailA] = true
-		used[emailB] = true
-	}
-
-	// Handle odd number of developers
-	if n%2 != 0 {
-		for _, dev := range developers {
-			email := dev.CanonicalEmail()
-			if !used[email] {
-				recommendations = append(recommendations, Recommendation{
-					A:         dev.AbbreviatedName,
-					B:         "",
-					Count:     0,
-					DaysSince: 0,
-					HasPaired: false,
-				})
-				break
-			}
-		}
-	}
-
-	return recommendations
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/gypsydave5/pairstair/internal/git"
 	"github.com/gypsydave5/pairstair/internal/output"
 	"github.com/gypsydave5/pairstair/internal/pairing"
+	"github.com/gypsydave5/pairstair/internal/recommend"
 )
 
 func TestNewRenderer(t *testing.T) {
@@ -127,17 +128,17 @@ func TestPrintMatrixCLI(t *testing.T) {
 func TestPrintRecommendationsCLI(t *testing.T) {
 	tests := []struct {
 		name            string
-		recommendations []output.Recommendation
+		recommendations []recommend.Recommendation
 		strategy        string
 	}{
 		{
 			name:            "empty recommendations",
-			recommendations: []output.Recommendation{},
+			recommendations: []recommend.Recommendation{},
 			strategy:        "least-paired",
 		},
 		{
 			name: "single pair recommendation",
-			recommendations: []output.Recommendation{
+			recommendations: []recommend.Recommendation{
 				{
 					A:     "alice@example.com",
 					B:     "bob@example.com",
@@ -148,7 +149,7 @@ func TestPrintRecommendationsCLI(t *testing.T) {
 		},
 		{
 			name: "unpaired developer",
-			recommendations: []output.Recommendation{
+			recommendations: []recommend.Recommendation{
 				{
 					A:     "alice@example.com",
 					B:     "",
@@ -159,7 +160,7 @@ func TestPrintRecommendationsCLI(t *testing.T) {
 		},
 		{
 			name: "least-recent strategy",
-			recommendations: []output.Recommendation{
+			recommendations: []recommend.Recommendation{
 				{
 					A:         "alice@example.com",
 					B:         "bob@example.com",
@@ -187,7 +188,7 @@ func TestPrintRecommendationsCLI(t *testing.T) {
 
 func TestRecommendation(t *testing.T) {
 	// Test the Recommendation struct
-	rec := output.Recommendation{
+	rec := recommend.Recommendation{
 		A:          "alice@example.com",
 		B:          "bob@example.com",
 		Count:      5,
@@ -222,7 +223,7 @@ func TestRenderHTMLToWriter(t *testing.T) {
 	// Create an empty matrix (we'll populate it via BuildPairMatrix in the future)
 	matrix := pairing.NewMatrix()
 
-	recommendations := []output.Recommendation{
+	recommendations := []recommend.Recommendation{
 		{
 			A:         alice.AbbreviatedName,
 			B:         bob.AbbreviatedName,
@@ -269,7 +270,7 @@ func TestRenderHTMLToWriter_EmptyRecommendations(t *testing.T) {
 	alice := git.NewDeveloper("Alice Smith <alice@example.com>")
 	developers := []git.Developer{alice}
 	matrix := pairing.NewMatrix()
-	recommendations := []output.Recommendation{}
+	recommendations := []recommend.Recommendation{}
 
 	var result strings.Builder
 	err := output.RenderHTMLToWriter(&result, matrix, developers, recommendations)

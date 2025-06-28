@@ -10,6 +10,7 @@ import (
 	"github.com/gypsydave5/pairstair/internal/git"
 	"github.com/gypsydave5/pairstair/internal/output"
 	"github.com/gypsydave5/pairstair/internal/pairing"
+	"github.com/gypsydave5/pairstair/internal/recommend"
 	"github.com/gypsydave5/pairstair/internal/team"
 	"github.com/gypsydave5/pairstair/internal/update"
 )
@@ -139,13 +140,15 @@ func main() {
 	matrix, pairRecency, developers := pairing.BuildPairMatrix(teamObj, commits, useTeam)
 
 	// Generate recommendations based on strategy
-	var recommendations []output.Recommendation
+	var strategy recommend.Strategy
 	switch config.Strategy {
 	case "least-recent":
-		recommendations = output.RecommendPairsLeastRecent(developers, matrix, pairRecency)
+		strategy = recommend.LeastRecent
 	default: // least-paired
-		recommendations = output.RecommendPairsOptimal(developers, matrix)
+		strategy = recommend.LeastPaired
 	}
+	
+	recommendations := recommend.GenerateRecommendations(developers, matrix, pairRecency, strategy)
 
 	renderer := output.NewRendererWithOpen(config.Output, config.Open)
 	err = renderer.Render(matrix, pairRecency, developers, config.Strategy, recommendations)
