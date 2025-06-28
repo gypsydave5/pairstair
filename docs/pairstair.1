@@ -6,8 +6,9 @@ pairstair \- visualize and optimize software developer pairing from git
 history
 .SH SYNOPSIS
 \f[B]pairstair\f[R] [\f[B]\-window\f[R] \f[I]window\f[R]]
-[\f[B]\-output\f[R] \f[I]format\f[R]] [\f[B]\-strategy\f[R]
-\f[I]strategy\f[R]] [\f[B]\-team\f[R] \f[I]team\f[R]]
+[\f[B]\-output\f[R] \f[I]format\f[R]] [\f[B]\-open\f[R]]
+[\f[B]\-strategy\f[R] \f[I]strategy\f[R]] [\f[B]\-team\f[R]
+\f[I]team\f[R]]
 .SH DESCRIPTION
 \f[B]pairstair\f[R] analyzes git commit history to show how often
 developers have paired (committed together) over a configurable time
@@ -27,7 +28,13 @@ Default: \f[CR]1w\f[R].
 \f[B]\-output\f[R] \f[I]format\f[R]
 Output format.
 Options: \f[CR]cli\f[R] (default, prints to terminal), \f[CR]html\f[R]
-(opens results in browser).
+(streams HTML to stdout).
+.TP
+\f[B]\-open\f[R]
+Open HTML output in browser.
+Only applies when \f[CR]\-output html\f[R] is specified.
+Without this flag, HTML is streamed to stdout, allowing redirection to
+files or piping to other tools.
 .TP
 \f[B]\-strategy\f[R] \f[I]strategy\f[R]
 Pairing recommendation strategy.
@@ -92,10 +99,16 @@ Analyze the last 4 weeks and show results in the terminal:
 pairstair \-window 4w
 .EE
 .PP
-Show results as HTML in your browser:
+Stream HTML results to stdout (can be redirected to a file):
 .IP
 .EX
-pairstair \-output html
+pairstair \-output html > report.html
+.EE
+.PP
+Open HTML results in your browser:
+.IP
+.EX
+pairstair \-output html \-open
 .EE
 .PP
 Analyze only the frontend sub\-team:

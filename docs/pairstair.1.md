@@ -6,7 +6,7 @@ pairstair - visualize and optimize software developer pairing from git history
 
 # SYNOPSIS
 
-**pairstair** [**-window** _window_] [**-output** _format_] [**-strategy** _strategy_] [**-team** _team_]
+**pairstair** [**-window** _window_] [**-output** _format_] [**-open**] [**-strategy** _strategy_] [**-team** _team_]
 
 # DESCRIPTION
 
@@ -20,7 +20,10 @@ The tool scans commits in the specified time window, finds the author and any co
 :   Set the time window to analyze. Examples: `1d` (1 day), `2w` (2 weeks), `3m` (3 months), `1y` (1 year). Default: `1w`.
 
 **-output** _format_  
-:   Output format. Options: `cli` (default, prints to terminal), `html` (opens results in browser).
+:   Output format. Options: `cli` (default, prints to terminal), `html` (streams HTML to stdout).
+
+**-open**  
+:   Open HTML output in browser. Only applies when `-output html` is specified. Without this flag, HTML is streamed to stdout, allowing redirection to files or piping to other tools.
 
 **-strategy** _strategy_  
 :   Pairing recommendation strategy. Options: `least-paired` (default, recommends pairs who have worked together the fewest times), `least-recent` (recommends pairs who haven't worked together for the longest time).
@@ -65,9 +68,13 @@ Analyze the last 4 weeks and show results in the terminal:
 
     pairstair -window 4w
 
-Show results as HTML in your browser:
+Stream HTML results to stdout (can be redirected to a file):
 
-    pairstair -output html
+    pairstair -output html > report.html
+
+Open HTML results in your browser:
+
+    pairstair -output html -open
 
 Analyze only the frontend sub-team:
 

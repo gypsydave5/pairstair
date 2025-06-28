@@ -50,7 +50,13 @@ pairstair -window 3m
 Generate a rich web report:
 
 ```bash
+# Stream HTML to a file
 pairstair -output html > pairing-report.html
+
+# Open HTML directly in browser  
+pairstair -output html -open
+
+# On macOS, you can still manually open the file
 open pairing-report.html  # macOS
 ```
 
@@ -429,10 +435,13 @@ Recommendations (least recent):
 When using `-output html`, you get:
 
 - **Interactive Matrix**: Click cells to see commit details
-- **Time Series Charts**: Pairing trends over time
+- **Time Series Charts**: Pairing trends over time  
 - **Developer Statistics**: Individual pairing frequency
 - **Filtering Options**: Filter by date ranges, developers
 - **Export Functions**: Save data as CSV or JSON
+- **Flexible Output**: Stream to stdout (default) or open in browser (`-open` flag)
+
+HTML output can be redirected to files, piped to other tools, or opened directly in your browser for immediate viewing.
 
 ### JSON Output (Future Feature)
 

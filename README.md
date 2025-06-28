@@ -83,7 +83,11 @@ pairstair -window 4w
 
 Options:
   - `cli` (default): Prints the pairing matrix on the command line.
-  - `html`: Outputs the pairing data in HTML and opens it in a web browser.
+  - `html`: Outputs the pairing data in HTML format to stdout (can be redirected to files).
+
+#### `-open`: Open HTML output in browser.
+
+When combined with `-output html`, opens the HTML results directly in your default web browser instead of streaming to stdout.
 
 #### `-strategy <strategy>`: Set the pairing recommendation strategy.
 
@@ -95,6 +99,16 @@ Example:
 
 ```sh
 pairstair -strategy least-recent
+```
+
+Examples with HTML output:
+
+```sh
+# Stream HTML to a file
+pairstair -output html > report.html
+
+# Open HTML directly in browser
+pairstair -output html -open
 ```
 
 #### `-team <team>`: Specify a sub-team to analyze.

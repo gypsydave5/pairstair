@@ -110,14 +110,20 @@ Recommendations:
 Generate a rich web interface with detailed analysis:
 
 ```bash
-pairstair -output html
+# Stream HTML to stdout (can be redirected or piped)
+pairstair -output html > report.html
+
+# Open HTML directly in your browser  
+pairstair -output html -open
 ```
 
-This creates an HTML file with:
+The HTML output includes:
 - Interactive pair matrix
-- Detailed statistics
+- Detailed statistics  
 - Visual charts
 - Sortable tables
+
+By default, HTML is streamed to stdout, making it easy to redirect to files or integrate with other tools. Use the `-open` flag to open results directly in your browser.
 
 ## Recommendation Strategies
 
