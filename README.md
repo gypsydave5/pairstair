@@ -277,6 +277,27 @@ PairStair uses an automated CI/CD pipeline that:
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for detailed release procedures.
 
+## Contributing
+
+Contributions are welcome! For development setup, testing guidelines, and the release process, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+### Quick Development Reference
+
+```bash
+# Run tests
+go test ./...
+
+# Build locally
+go build
+
+# Development helpers
+./dev.sh docs     # Regenerate man page
+./dev.sh version  # Show version info
+
+# Create a release (requires clean working directory)
+./release.sh v0.x.y "Release notes"
+```
+
 ## Documentation
 
 For comprehensive documentation, examples, and guides, visit the **[PairStair Documentation Site](https://gypsydave5.github.io/pairstair/)**.

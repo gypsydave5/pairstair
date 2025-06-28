@@ -2,6 +2,20 @@
 set -e
 
 # PairStair Release Script
+# 
+# Automates the complete release workflow with comprehensive validation.
+# Requires a completely clean working directory and passing tests.
+#
+# Features:
+#   - Version format validation (vX.Y.Z)
+#   - Clean working directory enforcement
+#   - Automated testing and cleanup
+#   - Git tag creation and pushing
+#   - Non-interactive operation with command-line release notes
+#
+# Usage: ./release.sh <version> [release_notes]
+# Documentation: See CONTRIBUTING.md for full release process details
+
 # Automates the common release workflow for creating and pushing new versions
 
 usage() {

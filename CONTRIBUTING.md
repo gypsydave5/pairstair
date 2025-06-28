@@ -68,6 +68,68 @@ We follow strict TDD practices:
 
 See `.github/copilot-instructions.md` for detailed TDD guidelines.
 
+## Development Scripts
+
+PairStair includes helper scripts to streamline common development tasks:
+
+### dev.sh - Development Helper
+
+Simple helper script for common development tasks:
+
+```bash
+# Show version information (builds temporarily if needed)
+./dev.sh version
+
+# Regenerate man page documentation
+./dev.sh docs
+
+# Show help
+./dev.sh
+```
+
+**Use standard Go commands for basic operations**:
+- `go test ./...` (instead of a test script)
+- `go build` (instead of a build script)
+- Manual cleanup as needed
+
+### release.sh - Release Automation
+
+Comprehensive script that automates the entire release process:
+
+```bash
+# Create release with default notes
+./release.sh v0.8.0
+
+# Create release with custom notes
+./release.sh v0.8.0 "v0.8.0 - New features and improvements
+
+- Added feature X
+- Fixed bug Y
+- Updated documentation"
+
+# Show help
+./release.sh
+```
+
+**What the release script does**:
+1. Validates version format (vX.Y.Z)
+2. Checks working directory is completely clean (no uncommitted changes)
+3. Verifies the tag doesn't already exist
+4. Runs all tests to ensure they pass
+5. Pushes any unpushed commits to origin
+6. Creates annotated git tag with release notes
+7. Pushes the tag to trigger CI/CD pipeline
+
+**Requirements**:
+- Clean working directory (no staged or unstaged changes)
+- All tests must pass
+- Valid semantic version format
+
+**Safety features**:
+- Aborts if uncommitted changes exist
+- Aborts if version tag already exists
+- Provides helpful error messages and suggestions
+
 ## Build and Release Process
 
 ### CI/CD Pipeline

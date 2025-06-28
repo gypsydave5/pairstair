@@ -2,6 +2,18 @@
 set -e
 
 # PairStair Development Helper Script
+# 
+# Provides simple helpers for development tasks that add value beyond
+# standard Go commands. Use standard commands like 'go test ./...' and 
+# 'go build' for basic operations.
+#
+# Available commands:
+#   docs    - Regenerate man page from markdown source
+#   version - Show comprehensive version information
+#
+# Usage: ./dev.sh <command>
+# Documentation: See CONTRIBUTING.md for full development workflow
+
 # Common development tasks and checks
 
 usage() {

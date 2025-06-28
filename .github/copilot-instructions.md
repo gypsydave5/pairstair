@@ -423,6 +423,8 @@ When deciding where to define types, consider which domain they fundamentally be
        commits := git.GetCommits()
        team := team.LoadTeam()
        analysis := pairing.Analyze(team, commits)
+       recommendation := pairing.RecommendPairs(pairs, strategy)
+       output.Print(recommendation, format)
    }
    ```
 
@@ -659,6 +661,37 @@ When writing or updating documentation, follow these critical practices to ensur
    - Version numbers and capabilities are current
 
 **Remember**: Documentation credibility depends on accuracy. Users trust that documented features actually work. Always verify before documenting.
+
+### Development Scripts
+
+PairStair includes two development helper scripts to streamline common workflows:
+
+#### dev.sh - Development Helper
+
+```bash
+./dev.sh docs     # Regenerate man page from markdown source  
+./dev.sh version  # Show comprehensive version information
+```
+
+**Use for**: Tasks that add value beyond standard Go commands. For basic operations, use `go test ./...`, `go build`, etc. directly.
+
+#### release.sh - Release Automation  
+
+```bash
+./release.sh v0.8.0                           # Release with default notes
+./release.sh v0.8.0 "Custom release notes"    # Release with custom notes
+```
+
+**Features**:
+- Validates version format (vX.Y.Z) and checks for existing tags
+- Requires completely clean working directory (no uncommitted changes)
+- Runs all tests and cleans up artifacts
+- Creates annotated git tag and pushes to trigger CI/CD
+- Non-interactive operation suitable for automation
+
+**Safety**: Script aborts on any validation failure with helpful error messages.
+
+**Documentation**: Full details in `CONTRIBUTING.md` for both scripts.
 
 ### Git Repository Hygiene
 
