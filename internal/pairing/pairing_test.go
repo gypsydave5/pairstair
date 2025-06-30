@@ -45,10 +45,9 @@ func TestRecencyMatrix(t *testing.T) {
 }
 
 func TestBuildPairMatrixEmptyCommits(t *testing.T) {
-	emptyTeam, _ := team.NewTeam([]string{})
 	commits := []git.Commit{}
 	
-	matrix, recencyMatrix, developers := pairing.BuildPairMatrix(emptyTeam, commits, false)
+	matrix, recencyMatrix, developers := pairing.BuildPairMatrix(team.Empty, commits, false)
 	
 	if matrix.Len() != 0 {
 		t.Errorf("Expected empty matrix for no commits, got length %d", matrix.Len())
@@ -66,7 +65,6 @@ func TestBuildPairMatrixEmptyCommits(t *testing.T) {
 }
 
 func TestBuildPairMatrixSingleAuthor(t *testing.T) {
-	emptyTeam, _ := team.NewTeam([]string{})
 	commits := []git.Commit{
 		{
 			Date:      time.Now(),
@@ -75,7 +73,7 @@ func TestBuildPairMatrixSingleAuthor(t *testing.T) {
 		},
 	}
 	
-	matrix, _, developers := pairing.BuildPairMatrix(emptyTeam, commits, false)
+	matrix, _, developers := pairing.BuildPairMatrix(team.Empty, commits, false)
 	
 	// Single author commits should not create pairs
 	if matrix.Len() != 0 {
@@ -103,7 +101,6 @@ func TestBuildPairMatrixSingleAuthor(t *testing.T) {
 }
 
 func TestBuildPairMatrixBasicPairing(t *testing.T) {
-	emptyTeam, _ := team.NewTeam([]string{})
 	commits := []git.Commit{
 		{
 			Date:   time.Date(2024, 6, 1, 12, 0, 0, 0, time.UTC),
@@ -114,7 +111,7 @@ func TestBuildPairMatrixBasicPairing(t *testing.T) {
 		},
 	}
 	
-	matrix, recencyMatrix, developers := pairing.BuildPairMatrix(emptyTeam, commits, false)
+	matrix, recencyMatrix, developers := pairing.BuildPairMatrix(team.Empty, commits, false)
 	
 	// Should have one pair
 	if matrix.Len() != 1 {
@@ -258,7 +255,6 @@ func TestBuildPairMatrixMultipleEmailsPerDeveloper(t *testing.T) {
 }
 
 func TestBuildPairMatrixThreeWayPairing(t *testing.T) {
-	emptyTeam, _ := team.NewTeam([]string{})
 	commits := []git.Commit{
 		{
 			Date:   time.Date(2024, 6, 1, 12, 0, 0, 0, time.UTC),
@@ -270,7 +266,7 @@ func TestBuildPairMatrixThreeWayPairing(t *testing.T) {
 		},
 	}
 	
-	matrix, _, developers := pairing.BuildPairMatrix(emptyTeam, commits, false)
+	matrix, _, developers := pairing.BuildPairMatrix(team.Empty, commits, false)
 	
 	// Three-way pairing should create 3 pairs: A-B, A-C, B-C
 	if matrix.Len() != 3 {
@@ -298,7 +294,6 @@ func TestBuildPairMatrixThreeWayPairing(t *testing.T) {
 }
 
 func TestBuildPairMatrixSamePairMultipleDays(t *testing.T) {
-	emptyTeam, _ := team.NewTeam([]string{})
 	commits := []git.Commit{
 		{
 			Date:   time.Date(2024, 6, 1, 12, 0, 0, 0, time.UTC),
@@ -323,7 +318,7 @@ func TestBuildPairMatrixSamePairMultipleDays(t *testing.T) {
 		},
 	}
 	
-	matrix, recencyMatrix, _ := pairing.BuildPairMatrix(emptyTeam, commits, false)
+	matrix, recencyMatrix, _ := pairing.BuildPairMatrix(team.Empty, commits, false)
 	
 	// Should count as 2 separate pairing days
 	count := matrix.Count("alice@example.com", "bob@example.com")
@@ -344,7 +339,6 @@ func TestBuildPairMatrixSamePairMultipleDays(t *testing.T) {
 }
 
 func TestBuildPairMatrixConsistentPairOrdering(t *testing.T) {
-	emptyTeam, _ := team.NewTeam([]string{})
 	commits := []git.Commit{
 		{
 			Date:   time.Date(2024, 6, 1, 12, 0, 0, 0, time.UTC),
@@ -355,7 +349,7 @@ func TestBuildPairMatrixConsistentPairOrdering(t *testing.T) {
 		},
 	}
 	
-	matrix, _, _ := pairing.BuildPairMatrix(emptyTeam, commits, false)
+	matrix, _, _ := pairing.BuildPairMatrix(team.Empty, commits, false)
 	
 	// Should work regardless of order in commit
 	count1 := matrix.Count("alice@example.com", "bob@example.com")

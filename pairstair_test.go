@@ -59,8 +59,7 @@ func TestMatrixLogic(t *testing.T) {
 		},
 	}
 
-	emptyTeam, _ := team.NewTeam([]string{})
-	matrix, _, _ := pairing.BuildPairMatrix(emptyTeam, commits, false)
+	matrix, _, _ := pairing.BuildPairMatrix(team.Empty, commits, false)
 
 	// Alice/Bob should have 1 (same day, only count once)
 	a, b := "alice@example.com", "bob@example.com"
@@ -194,8 +193,7 @@ func TestMultipleAuthorsInCommit(t *testing.T) {
 		},
 	}
 
-	emptyTeam, _ := team.NewTeam([]string{})
-	matrix, _, _ := pairing.BuildPairMatrix(emptyTeam, commits, false)
+	matrix, _, _ := pairing.BuildPairMatrix(team.Empty, commits, false)
 
 	// With 3 authors, we should have 3 pairs: (Alice, Bob), (Alice, Carol), (Bob, Carol)
 	if matrix.Len() != 3 {
@@ -455,8 +453,7 @@ func TestLeastRecentStrategy(t *testing.T) {
 		},
 	}
 
-	emptyTeam, _ := team.NewTeam([]string{})
-	matrix, recencyMatrix, developers := pairing.BuildPairMatrix(emptyTeam, commits, false)
+	matrix, recencyMatrix, developers := pairing.BuildPairMatrix(team.Empty, commits, false)
 
 	// Test recency tracking
 	aliceEmail := "alice@example.com"

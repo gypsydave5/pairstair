@@ -15,6 +15,14 @@ import (
 	"github.com/gypsydave5/pairstair/internal/git"
 )
 
+// Empty represents an empty team with no developers
+var Empty = Team{
+	team:                []string{},
+	developers:          make(map[string]git.Developer),
+	emailToName:         make(map[string]string),
+	emailToPrimaryEmail: make(map[string]string),
+}
+
 // Team represents a development team with member information and email mappings
 type Team struct {
 	team                []string
