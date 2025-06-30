@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/gypsydave5/pairstair/internal/git"
 	"github.com/gypsydave5/pairstair/internal/team"
 )
 
@@ -371,5 +372,163 @@ Dave Brown <dave@example.com>
 	// Comments starting with # should be ignored
 	if team.HasDeveloperByEmail("# This is a comment") {
 		t.Error("Comments should be ignored, not treated as developers")
+	}
+}
+
+func TestNewTeamFromDevelopers(t *testing.T) {
+	tests := []struct {
+		name          string
+		developers    []git.Developer
+		expectedCount int
+		checkEmail    string
+		shouldHave    bool
+	}{
+		{
+			name: "basic team from developers",
+			developers: []git.Developer{
+				{
+					DisplayName:     "Alice Smith",
+					EmailAddresses:  []string{"alice@example.com"},
+					AbbreviatedName: "Alice",
+				},
+				{
+					DisplayName:     "Bob Jones", 
+					EmailAddresses:  []string{"bob@example.com"},
+					AbbreviatedName: "Bob",
+				},
+			},
+			expectedCount: 2,
+			checkEmail:    "alice@example.com",
+			shouldHave:    true,
+		},
+		{
+			name: "developer with multiple emails",
+			developers: []git.Developer{
+				{
+					DisplayName:     "Alice Smith",
+					EmailAddresses:  []string{"alice@example.com", "alice@company.com"},
+					AbbreviatedName: "Alice",
+				},
+			},
+			expectedCount: 1,
+			checkEmail:    "alice@company.com",
+			shouldHave:    true,
+		},
+		{
+			name:          "empty developers slice",
+			developers:    []git.Developer{},
+			expectedCount: 0,
+			checkEmail:    "anyone@example.com",
+			shouldHave:    false,
+		},
+		{
+			name: "developer with no emails",
+			developers: []git.Developer{
+				{
+					DisplayName:     "Alice Smith",
+					EmailAddresses:  []string{"alice@example.com"},
+					AbbreviatedName: "Alice",
+				},
+				{
+					DisplayName:     "No Email Person",
+					EmailAddresses:  []string{}, // No emails - should be skipped
+					AbbreviatedName: "No Email",
+				},
+			},
+			expectedCount: 1,
+			checkEmail:    "alice@example.com",
+			shouldHave:    true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			team := team.NewTeamFromDevelopers(tt.developers)
+
+			// Check team size by examining returned developers
+			developers := team.GetDevelopers()
+			if len(developers) != tt.expectedCount {
+				t.Errorf("Expected %d developers, got %d", tt.expectedCount, len(developers))
+			}
+
+			// Check specific email
+			hasEmail := team.HasDeveloperByEmail(tt.checkEmail)
+			if hasEmail != tt.shouldHave {
+				t.Errorf("HasDeveloperByEmail(%q) = %v, expected %v", tt.checkEmail, hasEmail, tt.shouldHave)
+			}
+		})
+	}
+}
+
+func TestNewTeamEquivalence(t *testing.T) {
+	// Test that NewTeam and NewTeamFromDevelopers produce equivalent results
+	teamMembers := []string{
+		"Alice Smith <alice@example.com>,<alice@company.com>",
+		"Bob Jones <bob@example.com>",
+	}
+
+	// Create team using string-based constructor
+	teamFromStrings, err := team.NewTeam(teamMembers)
+	if err != nil {
+		t.Fatalf("NewTeam() failed: %v", err)
+	}
+
+	// Create equivalent developers manually
+	developers := []git.Developer{
+		git.NewDeveloper("Alice Smith <alice@example.com>,<alice@company.com>"),
+		git.NewDeveloper("Bob Jones <bob@example.com>"),
+	}
+
+	// Create team using developer-based constructor
+	teamFromDevelopers := team.NewTeamFromDevelopers(developers)
+
+	// Both teams should have the same developers
+	devsFromStrings := teamFromStrings.GetDevelopers()
+	devsFromDevelopers := teamFromDevelopers.GetDevelopers()
+
+	if len(devsFromStrings) != len(devsFromDevelopers) {
+		t.Errorf("Different number of developers: strings=%d, developers=%d", 
+			len(devsFromStrings), len(devsFromDevelopers))
+	}
+
+	// Check that all developers match
+	for i, dev1 := range devsFromStrings {
+		dev2 := devsFromDevelopers[i]
+		if dev1.CanonicalEmail() != dev2.CanonicalEmail() {
+			t.Errorf("Developer %d canonical emails differ: %s vs %s",
+				i, dev1.CanonicalEmail(), dev2.CanonicalEmail())
+		}
+		if dev1.DisplayName != dev2.DisplayName {
+			t.Errorf("Developer %d display names differ: %s vs %s",
+				i, dev1.DisplayName, dev2.DisplayName)
+		}
+		if len(dev1.EmailAddresses) != len(dev2.EmailAddresses) {
+			t.Errorf("Developer %d has different number of emails: %d vs %d",
+				i, len(dev1.EmailAddresses), len(dev2.EmailAddresses))
+		}
+		for j, email1 := range dev1.EmailAddresses {
+			email2 := dev2.EmailAddresses[j]
+			if email1 != email2 {
+				t.Errorf("Developer %d email %d differs: %s vs %s",
+					i, j, email1, email2)
+			}
+		}
+	}
+
+	// Both teams should recognize the same emails
+	testEmails := []string{
+		"alice@example.com",
+		"alice@company.com", 
+		"bob@example.com",
+		"nonexistent@example.com",
+	}
+
+	for _, email := range testEmails {
+		hasFromStrings := teamFromStrings.HasDeveloperByEmail(email)
+		hasFromDevelopers := teamFromDevelopers.HasDeveloperByEmail(email)
+		if hasFromStrings != hasFromDevelopers {
+			t.Errorf("Teams differ on email %s: strings=%v, developers=%v",
+				email, hasFromStrings, hasFromDevelopers)
+		}
 	}
 }

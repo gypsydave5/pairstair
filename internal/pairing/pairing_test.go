@@ -169,13 +169,11 @@ func TestBuildPairMatrixBasicPairing(t *testing.T) {
 }
 
 func TestBuildPairMatrixWithTeam(t *testing.T) {
-	teamObj, err := team.NewTeam([]string{
-		"Alice Smith <alice@example.com>",
-		"Bob Jones <bob@example.com>",
-	})
-	if err != nil {
-		t.Fatalf("Failed to create team: %v", err)
+	developers := []git.Developer{
+		git.NewDeveloper("Alice Smith <alice@example.com>"),
+		git.NewDeveloper("Bob Jones <bob@example.com>"),
 	}
+	teamObj := team.NewTeamFromDevelopers(developers)
 	
 	commits := []git.Commit{
 		{
@@ -222,13 +220,11 @@ func TestBuildPairMatrixWithTeam(t *testing.T) {
 }
 
 func TestBuildPairMatrixMultipleEmailsPerDeveloper(t *testing.T) {
-	teamObj, err := team.NewTeam([]string{
-		"Alice Smith <alice@example.com>,<alice@company.com>",
-		"Bob Jones <bob@example.com>",
-	})
-	if err != nil {
-		t.Fatalf("Failed to create team: %v", err)
+	developers := []git.Developer{
+		git.NewDeveloper("Alice Smith <alice@example.com>,<alice@company.com>"),
+		git.NewDeveloper("Bob Jones <bob@example.com>"),
 	}
+	teamObj := team.NewTeamFromDevelopers(developers)
 	
 	commits := []git.Commit{
 		{

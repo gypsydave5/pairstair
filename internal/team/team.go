@@ -7,6 +7,7 @@ package team
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"sort"
 	"strings"
@@ -64,6 +65,40 @@ func NewTeamFromFile(filename string, subTeam string) (Team, error) {
 	}
 
 	return NewTeam(teamMembers)
+}
+
+// NewTeamFromDevelopers creates a Team from a slice of git.Developer objects
+func NewTeamFromDevelopers(developers []git.Developer) Team {
+	devMap := make(map[string]git.Developer)
+	emailToName := make(map[string]string)
+	emailToPrimaryEmail := make(map[string]string)
+	var teamMembers []string
+
+	for _, developer := range developers {
+		if len(developer.EmailAddresses) == 0 {
+			continue // Skip developers with no emails
+		}
+
+		// Associate all emails with this name and primary email
+		for _, email := range developer.EmailAddresses {
+			emailToName[email] = developer.DisplayName
+			emailToPrimaryEmail[email] = developer.CanonicalEmail()
+		}
+
+		devMap[developer.CanonicalEmail()] = developer
+
+		// Create a team member string for backward compatibility
+		emailList := strings.Join(developer.EmailAddresses, ">,<")
+		memberString := fmt.Sprintf("%s <%s>", developer.DisplayName, emailList)
+		teamMembers = append(teamMembers, memberString)
+	}
+
+	return Team{
+		team:                teamMembers,
+		developers:          devMap,
+		emailToName:         emailToName,
+		emailToPrimaryEmail: emailToPrimaryEmail,
+	}
 }
 
 // NewTeam creates a Team from a list of team member strings

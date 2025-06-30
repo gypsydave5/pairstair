@@ -75,11 +75,12 @@ func TestMatrixLogic(t *testing.T) {
 }
 
 func TestMultipleEmailsInTeamFile(t *testing.T) {
-	// Team file with Alice having multiple email addresses
-	teamObj, _ := team.NewTeam([]string{
-		"Alice <alice@example.com>,<alice.work@company.com>",
-		"Bob <bob@example.com>",
-	})
+	// Team with Alice having multiple email addresses
+	developers := []git.Developer{
+		git.NewDeveloper("Alice <alice@example.com>,<alice.work@company.com>"),
+		git.NewDeveloper("Bob <bob@example.com>"),
+	}
+	teamObj := team.NewTeamFromDevelopers(developers)
 
 	// Commits with Alice using different email addresses
 	commits := []git.Commit{
@@ -125,11 +126,12 @@ func TestMultipleEmailsInTeamFile(t *testing.T) {
 }
 
 func TestTeamFileCanonicalName(t *testing.T) {
-	// Team file with a canonical name
-	teamObj, _ := team.NewTeam([]string{
-		"Canonical Alice <alice@example.com>",
-		"Bob <bob@example.com>",
-	})
+	// Team with a canonical name
+	developers := []git.Developer{
+		git.NewDeveloper("Canonical Alice <alice@example.com>"),
+		git.NewDeveloper("Bob <bob@example.com>"),
+	}
+	teamObj := team.NewTeamFromDevelopers(developers)
 
 	// Commits with a different name for Alice
 	commits := []git.Commit{
@@ -141,7 +143,7 @@ func TestTeamFileCanonicalName(t *testing.T) {
 	}
 
 	// Build the matrix with useTeam=true
-	_, _, developers := pairing.BuildPairMatrix(teamObj, commits, true)
+	_, _, developers = pairing.BuildPairMatrix(teamObj, commits, true)
 
 	// Find Alice in the developers list
 	var alice *git.Developer
@@ -221,17 +223,15 @@ func TestMultipleAuthorsInCommit(t *testing.T) {
 
 func TestComprehensivePairMatrix(t *testing.T) {
 	// Create a large team with developers having multiple email addresses
-	teamObj, err := team.NewTeam([]string{
-		"Alice Smith <alice@example.com>,<alice.smith@company.com>,<asmith@personal.net>",
-		"Bob Jones <bob@example.com>,<bjones@company.com>",
-		"Carol Davis <carol@example.com>,<cdavis@company.com>",
-		"Dave Wilson <dave@example.com>",
-		"Eve Brown <eve@example.com>,<ebrown@company.com>",
-		"Frank Thomas <frank@example.com>",
-	})
-	if err != nil {
-		t.Fatalf("failed to create team: %v", err)
+	developers := []git.Developer{
+		git.NewDeveloper("Alice Smith <alice@example.com>,<alice.smith@company.com>,<asmith@personal.net>"),
+		git.NewDeveloper("Bob Jones <bob@example.com>,<bjones@company.com>"),
+		git.NewDeveloper("Carol Davis <carol@example.com>,<cdavis@company.com>"),
+		git.NewDeveloper("Dave Wilson <dave@example.com>"),
+		git.NewDeveloper("Eve Brown <eve@example.com>,<ebrown@company.com>"),
+		git.NewDeveloper("Frank Thomas <frank@example.com>"),
 	}
+	teamObj := team.NewTeamFromDevelopers(developers)
 
 	// Create a comprehensive set of commits covering various scenarios
 	now := time.Date(2024, 6, 15, 12, 0, 0, 0, time.UTC)
@@ -758,13 +758,11 @@ func TestCoAuthorPairingDetection(t *testing.T) {
 	// Create team with Ahmad and Tamara using specific emails
 	// Include both Tamara emails to match the real-world scenario where team files
 	// should list all email variations for each developer
-	teamObj, err := team.NewTeam([]string{
-		"Ahmad Qurbanzada <ahmad.qurbanzada@springernature.com>",
-		"Tamara Jordan <20561445+tamj0rd2@users.noreply.github.com>,<tamara.jordan@springernature.com>",
-	})
-	if err != nil {
-		t.Fatalf("failed to create team: %v", err)
+	developers := []git.Developer{
+		git.NewDeveloper("Ahmad Qurbanzada <ahmad.qurbanzada@springernature.com>"),
+		git.NewDeveloper("Tamara Jordan <20561445+tamj0rd2@users.noreply.github.com>,<tamara.jordan@springernature.com>"),
 	}
+	teamObj := team.NewTeamFromDevelopers(developers)
 
 	// Create a commit that matches the real scenario:
 	// - Author: Tamara with work email (not in team file)
