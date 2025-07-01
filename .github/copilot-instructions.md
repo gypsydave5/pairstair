@@ -129,17 +129,46 @@ Watch for these signs that your domain model has outgrown primitive representati
 
 Tests should be written for all public functions and methods. Use the `testing` package from the standard library. Tests should be placed in a file ending with `_test.go`. Each test function should start with `Test` followed by the name of the function being tested.
 
+#### Running Tests in VS Code
+
+**Always use the VS Code test runner instead of terminal commands when working in the VS Code environment.**
+
+- **Use the `run_tests` tool**: This integrates with VS Code's testing infrastructure and provides better developer experience than running `go test` in the terminal
+- **For all tests**: Use `run_tests()` without parameters to run the full test suite
+- **For specific files**: Use `run_tests(files=["/path/to/test_file.go"])` to run tests for specific files
+- **Benefits**: Visual feedback, integration with Test Explorer, debugging capabilities, better error reporting
+
+**Only use terminal commands** when specifically debugging test execution or when VS Code test runner is unavailable.
+
+#### Git Operations in VS Code
+
+**Always use VS Code's integrated Git interface for all version control operations.**
+
+- **Use VS Code Git commands**: Use `run_vscode_command` with Git operations like `git.stage`, `git.commit`, `git.push`
+- **Autonomous Git workflow**: Always perform staging, commits, and pushes automatically using VS Code's interface after completing code changes and verifying tests pass
+- **Never ask user to perform Git operations**: Handle all version control operations independently as part of the development workflow
+- **Benefits**: Consistent workflow, integrated with VS Code's Git interface, eliminates manual steps for the user
+
+**Available Git commands**:
+- `git.stage` - Stage all changes or specific files
+- `git.stageAll` - Stage all changes in working directory  
+- `git.commit` - Commit staged changes (will prompt for message)
+- `git.commitAll` - Stage and commit all changes
+- `git.push` - Push commits to remote repository
+- `git.unstageAll` - Unstage all staged changes
+- `workbench.view.scm` - Open Source Control panel
+
 ### Test-Driven Development and Change Management
 
 When making changes to existing code, follow these critical practices:
 
-1. **Always establish a baseline first**: Before making any changes, run all tests to ensure they pass. This provides a known good state to compare against.
+1. **Always establish a baseline first**: Before making any changes, use `run_tests()` to ensure they pass. This provides a known good state to compare against.
 
-2. **Run tests after each logical change**: After making modifications, immediately run tests to verify nothing was broken. If tests fail, assume the failure is related to your recent changes unless proven otherwise.
+2. **Run tests after each logical change**: After making modifications, immediately use `run_tests()` to verify nothing was broken. If tests fail, assume the failure is related to your recent changes unless proven otherwise.
 
 3. **Be extremely careful when updating test code**: When modifying function signatures that require test updates:
    - Update one test file at a time
-   - Run tests after each file update
+   - Use `run_tests(files=["/path/to/test_file.go"])` after each file update
    - Pay special attention to copy-paste errors when updating multiple similar test calls
    - Avoid introducing new hardcoded values - use existing variables when possible
 
@@ -198,7 +227,7 @@ When making changes to existing code, follow these critical practices:
    - Example: `getVersionFromBuildInfo(info, hasInfo)` vs `getVersion()` that calls `debug.ReadBuildInfo()`
 
 5. **Verify tests fail correctly**:
-   - Run tests to confirm they fail as expected
+   - Use `run_tests()` to confirm they fail as expected
    - Fix any compilation errors in tests
    - Ensure failure messages are clear and helpful
 
@@ -208,14 +237,14 @@ When making changes to existing code, follow these critical practices:
    - Keep functions focused and single-purpose
 
 7. **Verify tests pass**:
-   - Run tests to confirm they now pass
-   - Run all tests to ensure no regressions
+   - Use `run_tests()` to confirm they now pass
+   - Use `run_tests()` to ensure no regressions across all tests
    - **Trust passing tests - avoid redundant manual verification if acceptance tests exist**
 
 8. **Refactor if needed**:
    - Clean up code while keeping tests green
    - Extract functions, improve naming, etc.
-   - Re-run tests after each refactoring step
+   - Re-run tests with `run_tests()` after each refactoring step
 
 #### Common TDD Anti-Patterns to Avoid:
 
@@ -338,7 +367,7 @@ func TestTripleRecommendations(t *testing.T) {
    - **Clean up**: Remove old APIs only after they're unused
 
 4. **Test after every logical change**:
-   - Run `go test ./...` after each commit
+   - Use `run_tests()` after each commit
    - Fix compilation errors immediately
    - Don't accumulate multiple breaking changes
 
@@ -440,8 +469,8 @@ func TestTripleRecommendations(t *testing.T) {
    - **If acceptance tests pass, have confidence the functionality works as users will experience it**
 
 2. **Don't duplicate test verification manually**:
-   - ❌ **Avoid**: Running `go test ./...`, then building binary, then manually testing same functionality
-   - ✅ **Do**: Run `go test ./...`, trust acceptance tests, move on
+   - ❌ **Avoid**: Running `run_tests()`, then building binary, then manually testing same functionality
+   - ✅ **Do**: Use `run_tests()`, trust acceptance tests, move on
    - ❌ **Avoid**: Testing CLI flags manually when acceptance tests cover them
    - ✅ **Do**: Add missing acceptance test coverage if you feel manual testing is needed
 
@@ -871,7 +900,7 @@ PairStair includes two development helper scripts to streamline common workflows
 ./dev.sh version  # Show comprehensive version information
 ```
 
-**Use for**: Tasks that add value beyond standard Go commands. For basic operations, use `go test ./...`, `go build`, etc. directly.
+**Use for**: Tasks that add value beyond standard Go commands. For testing, use the VS Code test runner (`run_tests`) in the VS Code environment. For builds and other operations, use `go build`, etc. directly.
 
 #### release.sh - Release Automation  
 
